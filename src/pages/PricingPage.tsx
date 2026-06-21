@@ -358,11 +358,17 @@ export function PricingPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <PremiumBadge premiumInfo={book.premiumInfo} size="sm" />
-                      {book.premiumInfo && book.premiumInfo.level !== 'none' && !book.premiumInfo.isConfirmed && (
-                        <p className="text-xs text-amber-600 mt-1">
-                          建议 {formatCurrency(book.premiumInfo.suggestedPrice)}
-                        </p>
+                      {book.premiumInfo && book.premiumInfo.level !== 'none' ? (
+                        <>
+                          <PremiumBadge premiumInfo={book.premiumInfo} size="sm" />
+                          {!book.premiumInfo.isConfirmed && (
+                            <p className="text-xs text-amber-600 mt-1">
+                              建议 {formatCurrency(book.premiumInfo.suggestedPrice)}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-xs text-brown-400">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-brown-600">
