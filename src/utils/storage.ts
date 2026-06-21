@@ -1,4 +1,4 @@
-import type { Book, Sale, TradeIn, PriceHistory, BookRequest, SmsNotification, CustomerPointsAccount, TradeInWithPoints } from '@/types';
+import type { Book, Sale, TradeIn, PriceHistory, BookRequest, SmsNotification, CustomerPointsAccount, TradeInWithPoints, SystemConfig } from '@/types';
 
 const STORAGE_KEYS = {
   BOOKS: 'bookstore_books',
@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   SMS_NOTIFICATIONS: 'bookstore_sms_notifications',
   POINTS_ACCOUNTS: 'bookstore_points_accounts',
   TRADE_INS_WITH_POINTS: 'bookstore_trade_ins_with_points',
+  SYSTEM_CONFIG: 'bookstore_system_config',
 };
 
 export function saveToStorage<T>(key: string, data: T): void {
@@ -91,4 +92,12 @@ export function saveTradeInsWithPoints(tradeIns: TradeInWithPoints[]): void {
 
 export function loadTradeInsWithPoints(): TradeInWithPoints[] {
   return loadFromStorage<TradeInWithPoints[]>(STORAGE_KEYS.TRADE_INS_WITH_POINTS, []);
+}
+
+export function saveSystemConfig(config: SystemConfig): void {
+  saveToStorage(STORAGE_KEYS.SYSTEM_CONFIG, config);
+}
+
+export function loadSystemConfig(): SystemConfig | null {
+  return loadFromStorage<SystemConfig | null>(STORAGE_KEYS.SYSTEM_CONFIG, null);
 }

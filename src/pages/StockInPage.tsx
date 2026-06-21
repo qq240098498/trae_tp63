@@ -6,14 +6,17 @@ import { ConditionPhotoUploader } from '@/components/ConditionPhotoUploader';
 import { Modal } from '@/components/Modal';
 import { useBookStore } from '@/store/useBookStore';
 import { useBookRequestStore } from '@/store/useBookRequestStore';
+import { useSystemConfigStore } from '@/store/useSystemConfigStore';
 import { lookupIsbn, validateIsbn } from '@/utils/isbn';
-import { calculateSalePrice, conditionLabels, scarcityLabels } from '@/utils/pricing';
+import { calculateSalePrice } from '@/utils/pricing';
 import { formatCurrency } from '@/utils/format';
 import type { BookCondition, ScarcityLevel, BookFormData, IsbnLookupResult, BookRequest } from '@/types';
 
 type InputMode = 'scan' | 'manual';
 
 export function StockInPage() {
+  const conditionLabels = useSystemConfigStore((s) => s.getConditionLabels());
+  const scarcityLabels = useSystemConfigStore((s) => s.getScarcityLabels());
   const [mode, setMode] = useState<InputMode>('scan');
   const [isbn, setIsbn] = useState('');
   const [isLookupLoading, setIsLookupLoading] = useState(false);

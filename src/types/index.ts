@@ -12,6 +12,35 @@ export type PointsTransactionType = 'earn_trade_in' | 'spend_purchase' | 'bonus'
 
 export type TradeInMode = 'value' | 'points';
 
+export interface ConditionConfig {
+  key: BookCondition;
+  label: string;
+  saleFactor: number;
+  tradeInValueFactor: number;
+  pointsFactor: number;
+  sortOrder: number;
+}
+
+export interface ScarcityConfig {
+  key: ScarcityLevel;
+  label: string;
+  factor: number;
+  sortOrder: number;
+}
+
+export interface PointsConfig {
+  pointsPerYuan: number;
+  yuanPerPoints: number;
+  tradeInBaseRate: number;
+}
+
+export interface SystemConfig {
+  conditions: ConditionConfig[];
+  scarcities: ScarcityConfig[];
+  points: PointsConfig;
+  updatedAt: string;
+}
+
 export interface ConditionPhoto {
   id: string;
   type: 'cover' | 'spine' | 'inside' | 'defect';

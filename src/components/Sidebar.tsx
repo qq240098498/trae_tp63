@@ -10,6 +10,7 @@ import {
   BookMarked,
   BookHeart,
   Coins,
+  Settings,
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useUiStore } from '@/store/useUiStore';
@@ -23,6 +24,7 @@ const navItems = [
   { path: '/trade-in', label: '以旧换新', icon: RefreshCw },
   { path: '/points', label: '积分中心', icon: Coins },
   { path: '/wishlist', label: '缺书登记', icon: BookHeart },
+  { path: '/settings', label: '系统设置', icon: Settings },
 ];
 
 export function Sidebar() {

@@ -1,5 +1,5 @@
 import type { BookCondition } from '@/types';
-import { conditionLabels } from '@/utils/pricing';
+import { useSystemConfigStore } from '@/store/useSystemConfigStore';
 
 interface ConditionBadgeProps {
   condition: BookCondition;
@@ -15,11 +15,12 @@ const conditionStyles: Record<BookCondition, string> = {
 };
 
 export function ConditionBadge({ condition, size = 'md' }: ConditionBadgeProps) {
+  const labels = useSystemConfigStore((s) => s.getConditionLabels());
   const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs';
 
   return (
     <span className={`badge border ${conditionStyles[condition]} ${sizeClasses}`}>
-      {conditionLabels[condition]}
+      {labels[condition]}
     </span>
   );
 }

@@ -23,13 +23,12 @@ import { Modal } from '@/components/Modal';
 import { useBookStore } from '@/store/useBookStore';
 import { useSaleStore } from '@/store/useSaleStore';
 import { usePointsStore } from '@/store/usePointsStore';
+import { useSystemConfigStore } from '@/store/useSystemConfigStore';
 import {
   calculateTradeInValue,
   calculateTradeInPoints,
-  conditionLabels,
   convertPointsToYuan,
-  POINTS_TO_YUAN_RATE,
-  conditionPointsFactors,
+  getPointsToYuanRate,
 } from '@/utils/pricing';
 import { lookupIsbn } from '@/utils/isbn';
 import { formatCurrency, formatDateTime } from '@/utils/format';
@@ -42,6 +41,10 @@ export function TradeInPage() {
   const { books, addBook, updateStatus } = useBookStore();
   const { tradeIns, addTradeIn } = useSaleStore();
   const { addPoints, deductPoints, getAccountByPhone, getOrCreateAccount } = usePointsStore();
+
+  const conditionLabels = useSystemConfigStore((s) => s.getConditionLabels());
+  const conditionPointsFactors = useSystemConfigStore((s) => s.getConditionPointsFactors());
+  const pointsToYuanRate = useSystemConfigStore((s) => s.getPointsToYuanRate());
 
   const [tradeMode, setTradeMode] = useState<TradeInMode>('value');
 
@@ -572,7 +575,7 @@ export function TradeInPage() {
                               if (e.target.checked) {
                                 const maxPoints = Math.min(
                                   customerPointsBalance,
-                                  Math.floor(selectedNewBook.salePrice / POINTS_TO_YUAN_RATE)
+                                  Math.floor(selectedNewBook.salePrice / pointsToYuanRate)
                                 );
                                 setPointsToUse(maxPoints);
                               } else {
@@ -598,7 +601,7 @@ export function TradeInPage() {
                               min="0"
                               max={Math.min(
                                 customerPointsBalance,
-                                Math.floor(selectedNewBook.salePrice / POINTS_TO_YUAN_RATE)
+                                Math.floor(selectedNewBook.salePrice / pointsToYuanRate)
                               )}
                               value={pointsToUse}
                               onChange={(e) => setPointsToUse(parseInt(e.target.value))}

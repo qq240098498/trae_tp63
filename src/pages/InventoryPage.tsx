@@ -20,14 +20,16 @@ import { Modal } from '@/components/Modal';
 import { ConditionPhotoGallery } from '@/components/ConditionPhotoGallery';
 import { ConditionPhotoUploader } from '@/components/ConditionPhotoUploader';
 import { useBookStore } from '@/store/useBookStore';
+import { useSystemConfigStore } from '@/store/useSystemConfigStore';
 import { formatCurrency, formatDate, formatRelativeTime } from '@/utils/format';
-import { conditionLabels, scarcityLabels } from '@/utils/pricing';
 import type { Book, BookCondition, BookStatus } from '@/types';
 
 type ViewMode = 'grid' | 'list';
 
 export function InventoryPage() {
   const { books, updateBook, deleteBook, updateStatus } = useBookStore();
+  const conditionLabels = useSystemConfigStore((s) => s.getConditionLabels());
+  const scarcityLabels = useSystemConfigStore((s) => s.getScarcityLabels());
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);

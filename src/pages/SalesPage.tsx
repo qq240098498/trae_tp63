@@ -26,8 +26,9 @@ import { ConditionPhotoGallery } from '@/components/ConditionPhotoGallery';
 import { useBookStore } from '@/store/useBookStore';
 import { useSaleStore } from '@/store/useSaleStore';
 import { usePointsStore } from '@/store/usePointsStore';
+import { useSystemConfigStore } from '@/store/useSystemConfigStore';
 import { formatCurrency, formatDateTime } from '@/utils/format';
-import { convertPointsToYuan, POINTS_TO_YUAN_RATE } from '@/utils/pricing';
+import { convertPointsToYuan, getPointsToYuanRate } from '@/utils/pricing';
 import type { PaymentMethod, Book } from '@/types';
 
 type TabType = 'checkout' | 'history';
@@ -54,6 +55,7 @@ export function SalesPage() {
   const { cart, addToCart, removeFromCart, updateCartQuantity, clearCart, getCartTotal, checkout, sales } =
     useSaleStore();
   const { deductPoints, getAccountByPhone } = usePointsStore();
+  const pointsToYuanRate = useSystemConfigStore((s) => s.getPointsToYuanRate());
 
   const onSaleBooks = books.filter((b) => b.status === 'on_sale');
   const filteredBooks = onSaleBooks.filter(
@@ -337,7 +339,7 @@ export function SalesPage() {
                         } else if (cartTotal > 0 && customerPointsBalance > 0) {
                           const maxPoints = Math.min(
                             customerPointsBalance,
-                            Math.floor((cartTotal - discount) / POINTS_TO_YUAN_RATE)
+                            Math.floor((cartTotal - discount) / pointsToYuanRate)
                           );
                           setPointsToUse(maxPoints);
                         }
@@ -406,7 +408,7 @@ export function SalesPage() {
                             min="0"
                             max={Math.min(
                               customerPointsBalance,
-                              Math.floor((cartTotal - discount) / POINTS_TO_YUAN_RATE)
+                              Math.floor((cartTotal - discount) / pointsToYuanRate)
                             )}
                             value={pointsToUse}
                             onChange={(e) => setPointsToUse(parseInt(e.target.value))}

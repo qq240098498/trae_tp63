@@ -19,8 +19,9 @@ import { PageHeader } from '@/components/PageHeader';
 import { SearchBar } from '@/components/SearchBar';
 import { Modal } from '@/components/Modal';
 import { usePointsStore } from '@/store/usePointsStore';
+import { useSystemConfigStore } from '@/store/useSystemConfigStore';
 import { formatDateTime, formatCurrency } from '@/utils/format';
-import { convertPointsToYuan, POINTS_TO_YUAN_RATE } from '@/utils/pricing';
+import { convertPointsToYuan, getPointsToYuanRate } from '@/utils/pricing';
 import type { CustomerPointsAccount, PointsTransactionType } from '@/types';
 
 const transactionTypeLabels: Record<PointsTransactionType, string> = {
@@ -42,6 +43,18 @@ const transactionTypeColors: Record<PointsTransactionType, string> = {
 export function PointsPage() {
   const { accounts, getOrCreateAccount, adjustPoints, setSelectedAccount, selectedAccount } =
     usePointsStore();
+
+  const pointsToYuanRate = useSystemConfigStore((s) => s.getPointsToYuanRate());
+  const yuanToPointsRate = useSystemConfigStore((s) => s.getYuanToPointsRate());
+  const conditionLabels = useSystemConfigStore((s) => s.getConditionLabels());
+  const conditionPointsFactors = useSystemConfigStore((s) => s.getConditionPointsFactors());
+  const conditionPointsList = useSystemConfigStore((s) =>
+    s.config.conditions.map((c) => ({ label: c.label, factor: c.pointsFactor }))
+  );
+
+  const pointsRuleText = conditionPointsList
+    .map((c) => `${c.label}×${c.factor}`)
+    .join(' / ');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
@@ -169,8 +182,8 @@ export function PointsPage() {
           <div className="flex-1">
             <h4 className="font-serif font-semibold text-brown-800 mb-1">积分规则说明</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-brown-600">
-              <p>• 旧书回收按品相累积积分：全新×10 / 近新×8 / 良好×6 / 一般×4 / 较差×2</p>
-              <p>• 每 {1 / POINTS_TO_YUAN_RATE} 积分可抵扣 1 元购书款</p>
+              <p>• 旧书回收按品相累积积分：{pointsRuleText}</p>
+              <p>• 每 {yuanToPointsRate} 积分可抵扣 1 元购书款</p>
               <p>• 积分可在任意书籍消费时使用，不限于旧书回收价</p>
               <p>• 鼓励书籍流转，让每本旧书都焕发新价值</p>
             </div>

@@ -6,12 +6,14 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { SearchBar } from '@/components/SearchBar';
 import { Modal } from '@/components/Modal';
 import { useBookStore } from '@/store/useBookStore';
-import { calculateSalePrice, scarcityLabels } from '@/utils/pricing';
+import { useSystemConfigStore } from '@/store/useSystemConfigStore';
+import { calculateSalePrice } from '@/utils/pricing';
 import { formatCurrency } from '@/utils/format';
 import type { Book } from '@/types';
 
 export function PricingPage() {
   const { books, updatePrice, updateStatus, autoPriceBook } = useBookStore();
+  const scarcityLabels = useSystemConfigStore((s) => s.getScarcityLabels());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBooks, setSelectedBooks] = useState<string[]>([]);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
