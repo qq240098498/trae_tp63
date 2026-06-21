@@ -155,16 +155,42 @@ export function WishlistPage() {
 
   const handleSendNotification = () => {
     if (!selectedRequest) return;
+
     const matchedBook = books.find(
-      (b) => b.isbn === selectedRequest.isbn || b.title === selectedRequest.title
+      (b) =>
+        (selectedRequest.isbn && b.isbn === selectedRequest.isbn) ||
+        b.title === selectedRequest.title
     );
-    if (matchedBook) {
-      const notification = createSmsNotification(selectedRequest, matchedBook);
-      markNotificationSent(notification.id);
-      alert(`已向 ${selectedRequest.customerName} (${selectedRequest.customerPhone}) 发送短信通知！`);
-    } else {
-      alert('未找到匹配的库存书籍');
-    }
+
+    const bookForNotification = matchedBook || {
+      id: 'virtual',
+      isbn: selectedRequest.isbn,
+      title: selectedRequest.title,
+      author: selectedRequest.author,
+      publisher: selectedRequest.publisher,
+      publishDate: '',
+      coverImage: '',
+      description: '',
+      condition: 'good' as const,
+      purchasePrice: 0,
+      salePrice: selectedRequest.maxPrice || 0,
+      scarcityFactor: 1,
+      scarcityLevel: 'common' as const,
+      status: 'on_sale' as const,
+      location: '',
+      notes: '',
+      conditionPhotos: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const notification = createSmsNotification(selectedRequest, bookForNotification);
+    markNotificationSent(notification.id);
+
+    alert(
+      `已向 ${selectedRequest.customerName} (${selectedRequest.customerPhone}) 发送短信通知！\n\n短信内容：\n${notification.message}`
+    );
+
     setIsNotifyModalOpen(false);
     setSelectedRequest(null);
   };
