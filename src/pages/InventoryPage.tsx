@@ -22,14 +22,20 @@ import { ConditionPhotoUploader } from '@/components/ConditionPhotoUploader';
 import { useBookStore } from '@/store/useBookStore';
 import { useSystemConfigStore } from '@/store/useSystemConfigStore';
 import { formatCurrency, formatDate, formatRelativeTime } from '@/utils/format';
-import type { Book, BookCondition, BookStatus } from '@/types';
+import type { Book, BookCondition, BookStatus, ScarcityLevel } from '@/types';
 
 type ViewMode = 'grid' | 'list';
 
 export function InventoryPage() {
   const { books, updateBook, deleteBook, updateStatus } = useBookStore();
-  const conditionLabels = useSystemConfigStore((s) => s.getConditionLabels());
-  const scarcityLabels = useSystemConfigStore((s) => s.getScarcityLabels());
+  const conditions = useSystemConfigStore((s) => s.config.conditions);
+  const scarcities = useSystemConfigStore((s) => s.config.scarcities);
+  const conditionLabels = Object.fromEntries(
+    conditions.map((c) => [c.key, c.label])
+  ) as Record<BookCondition, string>;
+  const scarcityLabels = Object.fromEntries(
+    scarcities.map((sc) => [sc.key, sc.label])
+  ) as Record<ScarcityLevel, string>;
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);

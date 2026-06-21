@@ -15,8 +15,14 @@ import type { BookCondition, ScarcityLevel, BookFormData, IsbnLookupResult, Book
 type InputMode = 'scan' | 'manual';
 
 export function StockInPage() {
-  const conditionLabels = useSystemConfigStore((s) => s.getConditionLabels());
-  const scarcityLabels = useSystemConfigStore((s) => s.getScarcityLabels());
+  const conditions = useSystemConfigStore((s) => s.config.conditions);
+  const scarcities = useSystemConfigStore((s) => s.config.scarcities);
+  const conditionLabels = Object.fromEntries(
+    conditions.map((c) => [c.key, c.label])
+  ) as Record<BookCondition, string>;
+  const scarcityLabels = Object.fromEntries(
+    scarcities.map((s) => [s.key, s.label])
+  ) as Record<ScarcityLevel, string>;
   const [mode, setMode] = useState<InputMode>('scan');
   const [isbn, setIsbn] = useState('');
   const [isLookupLoading, setIsLookupLoading] = useState(false);

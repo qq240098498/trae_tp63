@@ -17,6 +17,21 @@ import { formatDateTime, formatCurrency } from '@/utils/format';
 import { calculateTradeInPoints, convertPointsToYuan, calculateTradeInValue, calculateSalePrice } from '@/utils/pricing';
 import type { BookCondition, ScarcityLevel } from '@/types';
 
+const conditionBadgeStyles: Record<BookCondition, string> = {
+  new: 'bg-olive-100 text-olive-700 border-olive-200',
+  like_new: 'bg-olive-50 text-olive-600 border-olive-200',
+  good: 'bg-amber-100 text-amber-700 border-amber-200',
+  fair: 'bg-brown-100 text-brown-700 border-brown-200',
+  poor: 'bg-red-100 text-red-700 border-red-200',
+};
+
+const scarcityBadgeStyles: Record<ScarcityLevel, string> = {
+  rare: 'bg-red-100 text-red-700 border-red-200',
+  uncommon: 'bg-amber-100 text-amber-700 border-amber-200',
+  common: 'bg-brown-100 text-brown-700 border-brown-200',
+  abundant: 'bg-olive-100 text-olive-700 border-olive-200',
+};
+
 export function SettingsPage() {
   const {
     config,
@@ -108,7 +123,7 @@ export function SettingsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b-2 border-brown-100">
-                  <th className="px-2 py-2 text-left text-xs font-medium text-brown-600 w-24">等级</th>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-brown-600 w-28">品相等级</th>
                   <th className="px-2 py-2 text-left text-xs font-medium text-brown-600">显示名称</th>
                   <th className="px-2 py-2 text-center text-xs font-medium text-brown-600 w-20">
                     售价系数
@@ -131,8 +146,8 @@ export function SettingsPage() {
                   return (
                     <tr key={cond.key}>
                       <td className="px-2 py-2">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded bg-brown-100 text-brown-700 text-xs font-mono">
-                          {cond.key}
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-xs font-medium ${conditionBadgeStyles[cond.key as BookCondition]}`}>
+                          {cond.label}
                         </span>
                       </td>
                       <td className="px-2 py-2">
@@ -229,7 +244,7 @@ export function SettingsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-brown-100">
-                    <th className="px-2 py-2 text-left text-xs font-medium text-brown-600 w-24">等级</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-brown-600 w-28">稀缺等级</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-brown-600">显示名称</th>
                     <th className="px-2 py-2 text-center text-xs font-medium text-brown-600 w-28">
                       价格系数
@@ -245,8 +260,8 @@ export function SettingsPage() {
                     return (
                       <tr key={sc.key}>
                         <td className="px-2 py-2">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded bg-olive-100 text-olive-700 text-xs font-mono">
-                            {sc.key}
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-xs font-medium ${scarcityBadgeStyles[sc.key as ScarcityLevel]}`}>
+                            {sc.label}
                           </span>
                         </td>
                         <td className="px-2 py-2">

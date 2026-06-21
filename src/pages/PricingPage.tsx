@@ -13,7 +13,10 @@ import type { Book } from '@/types';
 
 export function PricingPage() {
   const { books, updatePrice, updateStatus, autoPriceBook } = useBookStore();
-  const scarcityLabels = useSystemConfigStore((s) => s.getScarcityLabels());
+  const scarcities = useSystemConfigStore((s) => s.config.scarcities);
+  const scarcityLabels = Object.fromEntries(
+    scarcities.map((sc) => [sc.key, sc.label])
+  ) as Record<string, string>;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBooks, setSelectedBooks] = useState<string[]>([]);
   const [editingBook, setEditingBook] = useState<Book | null>(null);

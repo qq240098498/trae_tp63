@@ -55,7 +55,7 @@ export function SalesPage() {
   const { cart, addToCart, removeFromCart, updateCartQuantity, clearCart, getCartTotal, checkout, sales } =
     useSaleStore();
   const { deductPoints, getAccountByPhone } = usePointsStore();
-  const pointsToYuanRate = useSystemConfigStore((s) => s.getPointsToYuanRate());
+  const pointsToYuanRate = useSystemConfigStore((s) => s.config.points.yuanPerPoints);
 
   const onSaleBooks = books.filter((b) => b.status === 'on_sale');
   const filteredBooks = onSaleBooks.filter(

@@ -42,9 +42,14 @@ export function TradeInPage() {
   const { tradeIns, addTradeIn } = useSaleStore();
   const { addPoints, deductPoints, getAccountByPhone, getOrCreateAccount } = usePointsStore();
 
-  const conditionLabels = useSystemConfigStore((s) => s.getConditionLabels());
-  const conditionPointsFactors = useSystemConfigStore((s) => s.getConditionPointsFactors());
-  const pointsToYuanRate = useSystemConfigStore((s) => s.getPointsToYuanRate());
+  const conditions = useSystemConfigStore((s) => s.config.conditions);
+  const conditionLabels = Object.fromEntries(
+    conditions.map((c) => [c.key, c.label])
+  ) as Record<BookCondition, string>;
+  const conditionPointsFactors = Object.fromEntries(
+    conditions.map((c) => [c.key, c.pointsFactor])
+  ) as Record<BookCondition, number>;
+  const pointsToYuanRate = useSystemConfigStore((s) => s.config.points.yuanPerPoints);
 
   const [tradeMode, setTradeMode] = useState<TradeInMode>('value');
 

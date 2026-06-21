@@ -44,13 +44,19 @@ export function PointsPage() {
   const { accounts, getOrCreateAccount, adjustPoints, setSelectedAccount, selectedAccount } =
     usePointsStore();
 
-  const pointsToYuanRate = useSystemConfigStore((s) => s.getPointsToYuanRate());
-  const yuanToPointsRate = useSystemConfigStore((s) => s.getYuanToPointsRate());
-  const conditionLabels = useSystemConfigStore((s) => s.getConditionLabels());
-  const conditionPointsFactors = useSystemConfigStore((s) => s.getConditionPointsFactors());
-  const conditionPointsList = useSystemConfigStore((s) =>
-    s.config.conditions.map((c) => ({ label: c.label, factor: c.pointsFactor }))
-  );
+  const conditions = useSystemConfigStore((s) => s.config.conditions);
+  const pointsToYuanRate = useSystemConfigStore((s) => s.config.points.yuanPerPoints);
+  const yuanToPointsRate = useSystemConfigStore((s) => s.config.points.pointsPerYuan);
+  const conditionLabels = Object.fromEntries(
+    conditions.map((c) => [c.key, c.label])
+  ) as Record<string, string>;
+  const conditionPointsFactors = Object.fromEntries(
+    conditions.map((c) => [c.key, c.pointsFactor])
+  ) as Record<string, number>;
+  const conditionPointsList = conditions.map((c) => ({
+    label: c.label,
+    factor: c.pointsFactor,
+  }));
 
   const pointsRuleText = conditionPointsList
     .map((c) => `${c.label}×${c.factor}`)

@@ -14,13 +14,23 @@ const conditionStyles: Record<BookCondition, string> = {
   poor: 'bg-red-100 text-red-700 border-red-200',
 };
 
+const defaultLabels: Record<BookCondition, string> = {
+  new: '全新',
+  like_new: '近新',
+  good: '良好',
+  fair: '一般',
+  poor: '较差',
+};
+
 export function ConditionBadge({ condition, size = 'md' }: ConditionBadgeProps) {
-  const labels = useSystemConfigStore((s) => s.getConditionLabels());
+  const label = useSystemConfigStore(
+    (s) => s.config.conditions.find((c) => c.key === condition)?.label
+  );
   const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs';
 
   return (
     <span className={`badge border ${conditionStyles[condition]} ${sizeClasses}`}>
-      {labels[condition]}
+      {label || defaultLabels[condition]}
     </span>
   );
 }
