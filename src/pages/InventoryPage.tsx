@@ -459,7 +459,10 @@ export function InventoryPage() {
                 </button>
                 {selectedBook.status === 'on_sale' && (
                   <button
-                    onClick={() => updateStatus(selectedBook.id, 'off_shelf')}
+                    onClick={() => {
+                      updateStatus(selectedBook.id, 'off_shelf');
+                      setSelectedBook({ ...selectedBook, status: 'off_shelf' });
+                    }}
                     className="flex-1 btn btn-secondary"
                   >
                     下架
@@ -467,7 +470,10 @@ export function InventoryPage() {
                 )}
                 {selectedBook.status === 'off_shelf' && (
                   <button
-                    onClick={() => updateStatus(selectedBook.id, 'on_sale')}
+                    onClick={() => {
+                      updateStatus(selectedBook.id, 'on_sale');
+                      setSelectedBook({ ...selectedBook, status: 'on_sale' });
+                    }}
                     className="flex-1 btn btn-success"
                   >
                     重新上架
