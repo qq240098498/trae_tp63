@@ -289,6 +289,7 @@ export const mockTradeIns: TradeIn[] = [
   {
     id: generateId(),
     tradeDate: daysAgo(8),
+    mode: 'value_only',
     oldBook: {
       id: 'mock-old-1',
       title: '三体',
@@ -297,6 +298,7 @@ export const mockTradeIns: TradeIn[] = [
       condition: 'good',
     },
     oldBookValue: 18,
+    pointsEarned: 0,
     newBook: {
       id: 'mock-new-1',
       title: '白夜行',
@@ -304,8 +306,11 @@ export const mockTradeIns: TradeIn[] = [
       coverImage: 'https://images.unsplash.com/photo-1509266272358-7701da638078?w=300&h=400&fit=crop',
       salePrice: 45,
     },
+    pointsUsed: 0,
     priceDifference: 27,
     direction: 'additional',
+    customerName: '',
+    customerPhone: '',
     notes: '顾客补了27元差价',
   },
 ];

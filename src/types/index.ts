@@ -23,7 +23,7 @@ export interface PremiumInfo {
 
 export type PointsTransactionType = 'earn_trade_in' | 'spend_purchase' | 'bonus' | 'adjust' | 'expire';
 
-export type TradeInMode = 'value' | 'points';
+export type TradeInMode = 'value_only' | 'points_only' | 'mixed';
 
 export interface ConditionConfig {
   key: BookCondition;
@@ -114,6 +114,7 @@ export interface Sale {
 export interface TradeIn {
   id: string;
   tradeDate: string;
+  mode: TradeInMode;
   oldBook: {
     id: string;
     title: string;
@@ -122,15 +123,19 @@ export interface TradeIn {
     condition: BookCondition;
   };
   oldBookValue: number;
-  newBook: {
+  pointsEarned: number;
+  newBook?: {
     id: string;
     title: string;
     isbn: string;
     coverImage: string;
     salePrice: number;
   };
+  pointsUsed: number;
   priceDifference: number;
-  direction: 'refund' | 'additional';
+  direction?: 'refund' | 'additional';
+  customerName?: string;
+  customerPhone?: string;
   notes: string;
 }
 
@@ -223,32 +228,4 @@ export interface CustomerPointsAccount {
   transactions: PointsTransaction[];
   createdAt: string;
   updatedAt: string;
-}
-
-export interface TradeInWithPoints {
-  id: string;
-  tradeDate: string;
-  mode: TradeInMode;
-  oldBook: {
-    id: string;
-    title: string;
-    isbn: string;
-    coverImage: string;
-    condition: BookCondition;
-  };
-  oldBookValue: number;
-  pointsEarned?: number;
-  newBook?: {
-    id: string;
-    title: string;
-    isbn: string;
-    coverImage: string;
-    salePrice: number;
-  };
-  pointsUsed?: number;
-  priceDifference?: number;
-  direction?: 'refund' | 'additional';
-  customerName?: string;
-  customerPhone?: string;
-  notes: string;
 }

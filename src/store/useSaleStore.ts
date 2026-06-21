@@ -44,7 +44,14 @@ export const useSaleStore = create<SaleStore>((set, get) => ({
     }
 
     if (storedTradeIns.length > 0) {
-      set({ tradeIns: storedTradeIns });
+      const migratedTradeIns = storedTradeIns.map((t) => ({
+        ...t,
+        mode: (t as any).mode ?? 'value_only',
+        pointsEarned: (t as any).pointsEarned ?? 0,
+        pointsUsed: (t as any).pointsUsed ?? 0,
+      }));
+      set({ tradeIns: migratedTradeIns });
+      saveTradeIns(migratedTradeIns);
     } else {
       set({ tradeIns: mockTradeIns });
       saveTradeIns(mockTradeIns);
@@ -139,7 +146,17 @@ export const useSaleStore = create<SaleStore>((set, get) => ({
     const tradeIn: TradeIn = {
       id: generateId(),
       tradeDate: new Date().toISOString(),
-      ...tradeInData,
+      mode: tradeInData.mode ?? 'value_only',
+      oldBook: tradeInData.oldBook,
+      oldBookValue: tradeInData.oldBookValue ?? 0,
+      pointsEarned: tradeInData.pointsEarned ?? 0,
+      newBook: tradeInData.newBook,
+      pointsUsed: tradeInData.pointsUsed ?? 0,
+      priceDifference: tradeInData.priceDifference ?? 0,
+      direction: tradeInData.direction,
+      customerName: tradeInData.customerName,
+      customerPhone: tradeInData.customerPhone,
+      notes: tradeInData.notes,
     };
 
     const tradeIns = [tradeIn, ...get().tradeIns];

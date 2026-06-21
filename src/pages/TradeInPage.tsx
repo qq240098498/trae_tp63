@@ -51,7 +51,8 @@ export function TradeInPage() {
   ) as Record<BookCondition, number>;
   const pointsToYuanRate = useSystemConfigStore((s) => s.config.points.yuanPerPoints);
 
-  const [tradeMode, setTradeMode] = useState<TradeInMode>('value');
+  const [tradeMode, setTradeMode] = useState<TradeInMode>('value_only');
+  const [valueRatio, setValueRatio] = useState<number>(50);
 
   const [selectedNewBook, setSelectedNewBook] = useState<Book | null>(null);
   const [showBookSelector, setShowBookSelector] = useState(false);
@@ -92,12 +93,28 @@ export function TradeInPage() {
   const tradeInPoints =
     oldBookOriginalPrice > 0 ? calculateTradeInPoints(oldBookOriginalPrice, oldBookCondition) : 0;
 
+  const actualValue =
+    tradeMode === 'value_only'
+      ? tradeInValue
+      : tradeMode === 'mixed'
+      ? Math.round((tradeInValue * valueRatio) / 100 * 100) / 100
+      : 0;
+
+  const actualPoints =
+    tradeMode === 'points_only'
+      ? tradeInPoints
+      : tradeMode === 'mixed'
+      ? Math.round((tradeInPoints * (100 - valueRatio)) / 100)
+      : 0;
+
+  const needCustomerInfo = tradeMode === 'points_only' || tradeMode === 'mixed';
+
   const customerAccount = customerPhone ? getAccountByPhone(customerPhone) : undefined;
   const customerPointsBalance = customerAccount?.balance || 0;
 
   const pointsDeductionValue = usePointsForNewBook ? convertPointsToYuan(pointsToUse) : 0;
 
-  const totalDeduction = tradeMode === 'value' ? tradeInValue : 0 + pointsDeductionValue;
+  const totalDeduction = actualValue + pointsDeductionValue;
 
   const priceDifference = selectedNewBook
     ? Math.max(0, selectedNewBook.salePrice - totalDeduction)
@@ -132,9 +149,9 @@ export function TradeInPage() {
   };
 
   const handleConfirmTrade = () => {
-    if (!oldBookInfo || (tradeMode === 'value' && !selectedNewBook)) return;
+    if (!oldBookInfo) return;
 
-    if (tradeMode === 'points' && (!customerName.trim() || !customerPhone.trim())) {
+    if (needCustomerInfo && (!customerName.trim() || !customerPhone.trim())) {
       alert('请填写会员信息以便积分到账');
       return;
     }
@@ -143,6 +160,12 @@ export function TradeInPage() {
       alert('积分不足，当前余额：' + customerPointsBalance);
       return;
     }
+
+    const modeLabelMap: Record<TradeInMode, string> = {
+      value_only: '现金折价',
+      points_only: '积分',
+      mixed: '混合(现金+积分)',
+    };
 
     const oldBookData: BookFormData = {
       isbn: oldBookInfo.isbn,
@@ -153,10 +176,10 @@ export function TradeInPage() {
       coverImage: oldBookInfo.coverImage,
       description: '',
       condition: oldBookCondition,
-      purchasePrice: tradeInValue,
+      purchasePrice: actualValue,
       scarcityLevel: 'common' as ScarcityLevel,
       location: '',
-      notes: oldBookNotes + ` (以旧换新-${tradeMode === 'value' ? '折价' : '积分'}模式)`,
+      notes: oldBookNotes + ` (以旧换新-${modeLabelMap[tradeMode]}模式)`,
       conditionPhotos: [],
     };
 
@@ -165,16 +188,16 @@ export function TradeInPage() {
 
     let pointsMessage = '';
 
-    if (tradeMode === 'points') {
+    if (actualPoints > 0 && needCustomerInfo) {
       const account = addPoints(
         customerPhone.trim(),
         customerName.trim(),
-        tradeInPoints,
+        actualPoints,
         `旧书回收：《${oldBookInfo.title}》(${conditionLabels[oldBookCondition]})`,
         addedOldBook.id
       );
       if (account) {
-        pointsMessage = `\n会员 ${customerName} 获得 ${tradeInPoints} 积分，当前余额 ${account.balance} 积分`;
+        pointsMessage = `\n会员 ${customerName} 获得 ${actualPoints} 积分，当前余额 ${account.balance} 积分`;
       }
     }
 
@@ -196,6 +219,7 @@ export function TradeInPage() {
       updateStatus(selectedNewBook.id, 'sold');
 
       addTradeIn({
+        mode: tradeMode,
         oldBook: {
           id: addedOldBook.id,
           title: oldBookInfo.title,
@@ -203,7 +227,8 @@ export function TradeInPage() {
           coverImage: oldBookInfo.coverImage,
           condition: oldBookCondition,
         },
-        oldBookValue: tradeInValue,
+        oldBookValue: actualValue,
+        pointsEarned: actualPoints,
         newBook: {
           id: selectedNewBook.id,
           title: selectedNewBook.title,
@@ -211,21 +236,48 @@ export function TradeInPage() {
           coverImage: selectedNewBook.coverImage,
           salePrice: selectedNewBook.salePrice,
         },
+        pointsUsed: pointsToUse,
         priceDifference,
         direction: 'additional',
+        customerName: customerName || undefined,
+        customerPhone: customerPhone || undefined,
         notes: oldBookNotes,
+      });
+    } else {
+      addTradeIn({
+        mode: tradeMode,
+        oldBook: {
+          id: addedOldBook.id,
+          title: oldBookInfo.title,
+          isbn: oldBookInfo.isbn,
+          coverImage: oldBookInfo.coverImage,
+          condition: oldBookCondition,
+        },
+        oldBookValue: actualValue,
+        pointsEarned: actualPoints,
+        pointsUsed: 0,
+        priceDifference: 0,
+        customerName: customerName || undefined,
+        customerPhone: customerPhone || undefined,
+        notes: oldBookNotes + (actualValue > 0 ? ` [现金回收${formatCurrency(actualValue)}]` : ''),
       });
     }
 
     setShowSuccess(true);
     let message = '';
-    if (tradeMode === 'value' && selectedNewBook) {
-      message = `换购成功！顾客补差价 ${formatCurrency(priceDifference)}`;
-    } else if (tradeMode === 'points' && selectedNewBook) {
-      const paidAmount = selectedNewBook.salePrice - pointsDeductionValue;
-      message = `换购成功！获得 ${tradeInPoints} 积分，使用 ${pointsToUse} 积分抵扣 ${formatCurrency(pointsDeductionValue)}，实收 ${formatCurrency(Math.max(0, paidAmount))}`;
-    } else if (tradeMode === 'points') {
-      message = `旧书回收成功！获得 ${tradeInPoints} 积分`;
+    if (selectedNewBook) {
+      const paidAmount = Math.max(0, selectedNewBook.salePrice - actualValue - pointsDeductionValue);
+      const parts: string[] = [];
+      if (actualValue > 0) parts.push(`旧书折价 ${formatCurrency(actualValue)}`);
+      if (actualPoints > 0) parts.push(`获 ${actualPoints} 积分`);
+      if (pointsDeductionValue > 0) parts.push(`用 ${pointsToUse} 积分抵 ${formatCurrency(pointsDeductionValue)}`);
+      parts.push(`实收 ${formatCurrency(paidAmount)}`);
+      message = `换购成功！${parts.join('，')}`;
+    } else {
+      const parts: string[] = [];
+      if (actualValue > 0) parts.push(`现金回收 ${formatCurrency(actualValue)}`);
+      if (actualPoints > 0) parts.push(`获得 ${actualPoints} 积分`);
+      message = `旧书回收成功！${parts.join('，')}`;
     }
     setSuccessMessage(message + pointsMessage);
 
@@ -292,40 +344,79 @@ export function TradeInPage() {
       {activeTab === 'trade' ? (
         <>
           <div className="card p-4 mb-6">
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-brown-700">换购模式：</span>
-              <div className="flex rounded-lg border border-brown-200 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="text-sm font-medium text-brown-700">回收方式：</span>
+              <div className="flex rounded-lg border border-brown-200 overflow-hidden flex-wrap">
                 <button
-                  onClick={() => setTradeMode('value')}
+                  onClick={() => setTradeMode('value_only')}
                   className={`px-5 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${
-                    tradeMode === 'value'
+                    tradeMode === 'value_only'
                       ? 'bg-olive-600 text-white'
                       : 'bg-white text-brown-600 hover:bg-brown-50'
                   }`}
                 >
                   <Banknote className="w-4 h-4" />
-                  旧书折价
+                  仅现金折价
                 </button>
                 <button
-                  onClick={() => setTradeMode('points')}
+                  onClick={() => setTradeMode('points_only')}
                   className={`px-5 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${
-                    tradeMode === 'points'
+                    tradeMode === 'points_only'
                       ? 'bg-amber-500 text-white'
                       : 'bg-white text-brown-600 hover:bg-brown-50'
                   }`}
                 >
                   <Coins className="w-4 h-4" />
-                  旧书换积分
+                  仅积分
+                </button>
+                <button
+                  onClick={() => setTradeMode('mixed')}
+                  className={`px-5 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 ${
+                    tradeMode === 'mixed'
+                      ? 'bg-brown-600 text-white'
+                      : 'bg-white text-brown-600 hover:bg-brown-50'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  现金+积分
                 </button>
               </div>
               <div className="flex-1" />
-              {tradeMode === 'points' && (
-                <div className="text-xs text-brown-500 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  积分可抵扣任意书籍消费，不限于旧书回收价
-                </div>
-              )}
+              <div className="text-xs text-brown-500 flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                积分可抵扣任意书籍消费，不限于旧书回收价
+              </div>
             </div>
+
+            {tradeMode === 'mixed' && oldBookOriginalPrice > 0 && (
+              <div className="mt-4 pt-4 border-t border-brown-100">
+                <div className="flex items-center justify-between mb-2 text-sm">
+                  <span className="text-brown-600">现金折价比例</span>
+                  <span className="font-bold text-brown-800">{valueRatio}% 现金 / {100 - valueRatio}% 积分</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={valueRatio}
+                  onChange={(e) => setValueRatio(parseInt(e.target.value))}
+                  className="w-full accent-brown-500"
+                />
+                <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
+                  <div className="p-3 bg-olive-50 rounded-lg text-center">
+                    <p className="text-olive-700 text-xs mb-1">现金折价</p>
+                    <p className="text-xl font-bold text-olive-600">{formatCurrency(actualValue)}</p>
+                  </div>
+                  <div className="p-3 bg-amber-50 rounded-lg text-center">
+                    <p className="text-amber-700 text-xs mb-1 flex items-center justify-center gap-1">
+                      <Coins className="w-3 h-3" /> 获得积分
+                    </p>
+                    <p className="text-xl font-bold text-amber-600">{actualPoints.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -418,20 +509,22 @@ export function TradeInPage() {
                   {oldBookOriginalPrice > 0 && (
                     <div
                       className={`p-4 border rounded-xl ${
-                        tradeMode === 'value'
+                        tradeMode === 'value_only'
                           ? 'bg-amber-50 border-amber-200'
-                          : 'bg-amber-50 border-amber-300'
+                          : tradeMode === 'points_only'
+                          ? 'bg-amber-50 border-amber-300'
+                          : 'bg-brown-50 border-brown-200'
                       }`}
                     >
-                      {tradeMode === 'value' ? (
+                      {tradeMode === 'value_only' ? (
                         <>
-                          <p className="text-sm text-amber-700 mb-1">旧书估价</p>
+                          <p className="text-sm text-amber-700 mb-1">旧书现金估价</p>
                           <p className="text-2xl font-bold text-amber-600">
                             {formatCurrency(tradeInValue)}
                           </p>
-                          <p className="text-xs text-amber-600 mt-1">原价 × 品相系数 × 0.5</p>
+                          <p className="text-xs text-amber-600 mt-1">原价 × 品相系数 × 基础折价率</p>
                         </>
-                      ) : (
+                      ) : tradeMode === 'points_only' ? (
                         <>
                           <div className="flex items-center gap-2 mb-1">
                             <Coins className="w-4 h-4 text-amber-600" />
@@ -448,15 +541,40 @@ export function TradeInPage() {
                             约可抵扣 {formatCurrency(convertPointsToYuan(tradeInPoints))}
                           </p>
                         </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-brown-700 mb-3">混合分配结果（可调比例）</p>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 bg-olive-50 rounded-lg">
+                              <p className="text-xs text-olive-700 mb-1">现金折价</p>
+                              <p className="text-xl font-bold text-olive-600">
+                                {formatCurrency(actualValue)}
+                              </p>
+                              <p className="text-xs text-olive-600 mt-1">{valueRatio}%</p>
+                            </div>
+                            <div className="p-3 bg-amber-50 rounded-lg">
+                              <p className="text-xs text-amber-700 mb-1 flex items-center gap-1">
+                                <Coins className="w-3 h-3" /> 积分
+                              </p>
+                              <p className="text-xl font-bold text-amber-600">
+                                {actualPoints.toLocaleString()}
+                              </p>
+                              <p className="text-xs text-amber-600 mt-1">{100 - valueRatio}%</p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-brown-500 mt-3">
+                            原价 × 系数 = 全额 {formatCurrency(tradeInValue)} 或 {tradeInPoints} 积分
+                          </p>
+                        </>
                       )}
                     </div>
                   )}
 
-                  {tradeMode === 'points' && (
+                  {needCustomerInfo && (
                     <div className="p-4 bg-brown-50 rounded-xl space-y-3">
                       <p className="text-sm font-medium text-brown-700 flex items-center gap-1">
                         <User className="w-4 h-4" />
-                        会员信息
+                        会员信息（积分到账必填）
                       </p>
                       <div>
                         <label className="input-label text-xs">姓名 *</label>
@@ -510,23 +628,24 @@ export function TradeInPage() {
                 <div className="p-4 bg-amber-100 rounded-full">
                   <ArrowRight className="w-8 h-8 text-amber-600 rotate-90 lg:rotate-0" />
                 </div>
-                <div className="text-center">
-                  {tradeMode === 'value' ? (
+                <div className="text-center space-y-2">
+                  {(actualValue > 0 || tradeMode === 'value_only') && (
                     <>
-                      <p className="text-sm text-brown-500">旧书抵价</p>
-                      {tradeInValue > 0 && (
+                      <p className="text-sm text-brown-500">旧书现金抵价</p>
+                      {actualValue > 0 && (
                         <p className="text-xl font-bold text-olive-600">
-                          -{formatCurrency(tradeInValue)}
+                          -{formatCurrency(actualValue)}
                         </p>
                       )}
                     </>
-                  ) : (
+                  )}
+                  {(actualPoints > 0 || tradeMode === 'points_only' || tradeMode === 'mixed') && (
                     <>
-                      <p className="text-sm text-brown-500">获得积分</p>
-                      {tradeInPoints > 0 && (
-                        <p className="text-xl font-bold text-amber-600 flex items-center gap-1">
+                      <p className="text-sm text-brown-500 mt-3">获得积分</p>
+                      {actualPoints > 0 && (
+                        <p className="text-xl font-bold text-amber-600 flex items-center gap-1 justify-center">
                           <Coins className="w-5 h-5" />
-                          +{tradeInPoints.toLocaleString()}
+                          +{actualPoints.toLocaleString()}
                         </p>
                       )}
                     </>
@@ -542,7 +661,7 @@ export function TradeInPage() {
                     <BookOpen className="w-5 h-5 text-amber-600" />
                   </div>
                   <h3 className="font-serif font-semibold text-lg text-brown-800">
-                    {tradeMode === 'points' ? '换购新书（可选）' : '换购新书'}
+                    换购新书（可选）
                   </h3>
                 </div>
 
@@ -569,7 +688,7 @@ export function TradeInPage() {
                       </p>
                     </div>
 
-                    {tradeMode === 'points' && customerAccount && customerPointsBalance > 0 && (
+                    {customerAccount && customerPointsBalance > 0 && (
                       <div className="mb-4 p-3 bg-amber-50 rounded-xl">
                         <label className="flex items-center gap-2 mb-2 cursor-pointer">
                           <input
@@ -590,7 +709,7 @@ export function TradeInPage() {
                             className="w-4 h-4 rounded border-brown-300 text-amber-500 focus:ring-amber-400"
                           />
                           <span className="text-sm font-medium text-brown-700">
-                            使用积分抵扣
+                            使用会员积分抵扣
                           </span>
                         </label>
                         {usePointsForNewBook && (
@@ -636,13 +755,11 @@ export function TradeInPage() {
                     className="w-full aspect-[3/4] border-2 border-dashed border-brown-200 rounded-xl flex flex-col items-center justify-center text-brown-400 hover:border-brown-400 hover:text-brown-600 transition-colors"
                   >
                     <Plus className="w-10 h-10 mb-2" />
-                    <span className="text-sm font-medium">
-                      {tradeMode === 'points' ? '选择换购新书（可选）' : '选择换购新书'}
-                    </span>
+                    <span className="text-sm font-medium">选择换购新书（可选）</span>
                   </button>
                 )}
 
-                {selectedNewBook && (tradeInValue > 0 || pointsDeductionValue > 0 || tradeMode === 'points') && (
+                {(selectedNewBook && (actualValue > 0 || pointsDeductionValue > 0 || actualPoints > 0)) && (
                   <div className="mt-6 p-4 border-2 border-brown-200 rounded-xl">
                     <h4 className="font-medium text-brown-800 mb-3">换购结算</h4>
                     <div className="space-y-2 text-sm">
@@ -650,19 +767,19 @@ export function TradeInPage() {
                         <span className="text-brown-500">新书价格</span>
                         <span className="text-brown-700">{formatCurrency(selectedNewBook.salePrice)}</span>
                       </div>
-                      {tradeMode === 'value' && tradeInValue > 0 && (
+                      {actualValue > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-brown-500">旧书抵扣</span>
-                          <span className="text-olive-600">-{formatCurrency(tradeInValue)}</span>
+                          <span className="text-brown-500">旧书现金抵扣</span>
+                          <span className="text-olive-600">-{formatCurrency(actualValue)}</span>
                         </div>
                       )}
-                      {tradeMode === 'points' && tradeInPoints > 0 && (
+                      {actualPoints > 0 && (
                         <div className="flex justify-between">
                           <span className="text-brown-500 flex items-center gap-1">
                             <Coins className="w-3.5 h-3.5" />
                             旧书获积分
                           </span>
-                          <span className="text-amber-600">+{tradeInPoints.toLocaleString()}</span>
+                          <span className="text-amber-600">+{actualPoints.toLocaleString()}</span>
                         </div>
                       )}
                       {pointsDeductionValue > 0 && (
@@ -677,27 +794,43 @@ export function TradeInPage() {
                       <div className="flex justify-between pt-2 border-t border-brown-200">
                         <span className="font-medium text-brown-700">顾客实付</span>
                         <span className="text-xl font-bold text-amber-600">
-                          {formatCurrency(
-                            Math.max(
-                              0,
-                              selectedNewBook.salePrice -
-                                (tradeMode === 'value' ? tradeInValue : 0) -
-                                pointsDeductionValue
-                            )
-                          )}
+                          {formatCurrency(priceDifference)}
                         </span>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {tradeMode === 'points' && !selectedNewBook && tradeInPoints > 0 && (
-                  <div className="mt-6 p-4 border-2 border-dashed border-amber-300 bg-amber-50/50 rounded-xl text-center">
-                    <Coins className="w-10 h-10 mx-auto mb-2 text-amber-500" />
-                    <p className="text-sm text-brown-700">
-                      仅回收旧书，获得 <span className="font-bold text-amber-600">{tradeInPoints.toLocaleString()}</span> 积分
-                    </p>
-                    <p className="text-xs text-brown-500 mt-1">积分可在以后任意消费时使用</p>
+                {!selectedNewBook && (actualValue > 0 || actualPoints > 0) && (
+                  <div className="mt-6 p-4 border-2 border-dashed rounded-xl text-center space-y-2 bg-brown-50/50 border-brown-300">
+                    {(actualValue > 0 && tradeMode !== 'points_only') && (
+                      <>
+                        <Banknote className="w-10 h-10 mx-auto mb-1 text-olive-500" />
+                        <p className="text-sm text-brown-700">
+                          仅回收旧书，支付现金{' '}
+                          <span className="font-bold text-olive-600">
+                            {formatCurrency(actualValue)}
+                          </span>
+                        </p>
+                      </>
+                    )}
+                    {actualPoints > 0 && tradeMode === 'points_only' && (
+                      <>
+                        <Coins className="w-10 h-10 mx-auto mb-2 text-amber-500" />
+                        <p className="text-sm text-brown-700">
+                          仅回收旧书，获得{' '}
+                          <span className="font-bold text-amber-600">{actualPoints.toLocaleString()}</span> 积分
+                        </p>
+                        <p className="text-xs text-brown-500">积分可在以后任意消费时使用</p>
+                      </>
+                    )}
+                    {tradeMode === 'mixed' && (
+                      <div className="pt-2 border-t border-brown-200 mt-2">
+                        <p className="text-xs text-brown-500">
+                          现金回收 {formatCurrency(actualValue)} ＋ {actualPoints} 积分
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -711,67 +844,94 @@ export function TradeInPage() {
               <thead className="bg-brown-50 border-b border-brown-100">
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-medium text-brown-600">时间</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-brown-600">方式</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-brown-600">旧书</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-brown-600">新书</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-brown-600">旧书估价</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-brown-600">差价</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-brown-600">方向</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-brown-600">现金折价</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-brown-600">积分</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-brown-600">实付差价</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-brown-100">
-                {tradeIns.map((trade) => (
-                  <tr key={trade.id} className="hover:bg-brown-50/50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-brown-600">
-                      {formatDateTime(trade.tradeDate)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={trade.oldBook.coverImage}
-                          alt={trade.oldBook.title}
-                          className="w-8 h-10 object-cover rounded"
-                        />
-                        <div>
-                          <p className="text-sm text-brown-700">{trade.oldBook.title}</p>
-                          <ConditionBadge condition={trade.oldBook.condition} size="sm" />
+                {tradeIns.map((trade) => {
+                  const modeLabel: Record<TradeInMode, { label: string; cls: string }> = {
+                    value_only: { label: '现金折价', cls: 'bg-olive-100 text-olive-700' },
+                    points_only: { label: '纯积分', cls: 'bg-amber-100 text-amber-700' },
+                    mixed: { label: '混合', cls: 'bg-brown-100 text-brown-700' },
+                  };
+                  const m = modeLabel[trade.mode];
+                  return (
+                    <tr key={trade.id} className="hover:bg-brown-50/50 transition-colors">
+                      <td className="px-4 py-3 text-sm text-brown-600">
+                        {formatDateTime(trade.tradeDate)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${m.cls}`}>
+                          {m.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={trade.oldBook.coverImage}
+                            alt={trade.oldBook.title}
+                            className="w-8 h-10 object-cover rounded"
+                          />
+                          <div>
+                            <p className="text-sm text-brown-700">{trade.oldBook.title}</p>
+                            <ConditionBadge condition={trade.oldBook.condition} size="sm" />
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={trade.newBook.coverImage}
-                          alt={trade.newBook.title}
-                          className="w-8 h-10 object-cover rounded"
-                        />
-                        <p className="text-sm text-brown-700">{trade.newBook.title}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-olive-600 font-medium">
-                      {formatCurrency(trade.oldBookValue)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`text-lg font-bold ${
-                          trade.direction === 'additional' ? 'text-amber-600' : 'text-olive-600'
-                        }`}
-                      >
-                        {formatCurrency(trade.priceDifference)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`text-xs font-medium px-2 py-1 rounded-full ${
-                          trade.direction === 'additional'
-                            ? 'bg-amber-100 text-amber-700'
-                            : 'bg-olive-100 text-olive-700'
-                        }`}
-                      >
-                        {trade.direction === 'additional' ? '补差价' : '退余款'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-3">
+                        {trade.newBook ? (
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={trade.newBook.coverImage}
+                              alt={trade.newBook.title}
+                              className="w-8 h-10 object-cover rounded"
+                            />
+                            <p className="text-sm text-brown-700">{trade.newBook.title}</p>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-brown-400">仅回收</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-olive-600 font-medium">
+                        {trade.oldBookValue > 0 ? formatCurrency(trade.oldBookValue) : '-'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm text-amber-600">
+                          {trade.pointsEarned > 0 && (
+                            <span className="font-medium">+{trade.pointsEarned.toLocaleString()}</span>
+                          )}
+                          {trade.pointsUsed > 0 && trade.pointsEarned > 0 && <span className="mx-1">/</span>}
+                          {trade.pointsUsed > 0 && (
+                            <span className="text-olive-600">-{trade.pointsUsed.toLocaleString()}</span>
+                          )}
+                          {trade.pointsEarned === 0 && trade.pointsUsed === 0 && <span className="text-brown-300">-</span>}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {trade.newBook ? (
+                          <span
+                            className={`text-lg font-bold ${
+                              trade.direction === 'additional' ? 'text-amber-600' : 'text-olive-600'
+                            }`}
+                          >
+                            {formatCurrency(trade.priceDifference)}
+                          </span>
+                        ) : trade.oldBookValue > 0 ? (
+                          <span className="text-sm text-olive-600">
+                            回收{formatCurrency(trade.oldBookValue)}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-brown-400">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -793,13 +953,21 @@ export function TradeInPage() {
             onClick={handleConfirmTrade}
             disabled={
               !oldBookInfo ||
-              (tradeMode === 'value' && !selectedNewBook) ||
-              (tradeMode === 'value' && tradeInValue <= 0) ||
-              (tradeMode === 'points' && tradeInPoints <= 0)
+              (tradeMode === 'value_only' && actualValue <= 0) ||
+              (tradeMode === 'points_only' && actualPoints <= 0) ||
+              (tradeMode === 'mixed' && actualValue <= 0 && actualPoints <= 0)
             }
             className="btn btn-success px-8 py-3 text-base"
           >
-            {tradeMode === 'points' && !selectedNewBook ? '确认回收获积分' : '确认换购'}
+            {!selectedNewBook && tradeMode === 'value_only' && actualValue > 0
+              ? '确认现金回收'
+              : !selectedNewBook && tradeMode === 'points_only'
+              ? '确认回收获积分'
+              : !selectedNewBook && tradeMode === 'mixed'
+              ? '确认混合回收'
+              : selectedNewBook
+              ? '确认换购'
+              : '确认操作'}
           </button>
         </div>
       )}
