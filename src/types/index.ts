@@ -8,6 +8,10 @@ export type PaymentMethod = 'cash' | 'wechat' | 'alipay' | 'card';
 
 export type ScarcityLevel = 'rare' | 'uncommon' | 'common' | 'abundant';
 
+export type PointsTransactionType = 'earn_trade_in' | 'spend_purchase' | 'bonus' | 'adjust' | 'expire';
+
+export type TradeInMode = 'value' | 'points';
+
 export interface ConditionPhoto {
   id: string;
   type: 'cover' | 'spine' | 'inside' | 'defect';
@@ -151,4 +155,54 @@ export interface SmsNotification {
   status: NotificationStatus;
   sentAt?: string;
   createdAt: string;
+}
+
+export interface PointsTransaction {
+  id: string;
+  type: PointsTransactionType;
+  amount: number;
+  balanceAfter: number;
+  description: string;
+  referenceId?: string;
+  createdAt: string;
+}
+
+export interface CustomerPointsAccount {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  balance: number;
+  totalEarned: number;
+  totalSpent: number;
+  transactions: PointsTransaction[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TradeInWithPoints {
+  id: string;
+  tradeDate: string;
+  mode: TradeInMode;
+  oldBook: {
+    id: string;
+    title: string;
+    isbn: string;
+    coverImage: string;
+    condition: BookCondition;
+  };
+  oldBookValue: number;
+  pointsEarned?: number;
+  newBook?: {
+    id: string;
+    title: string;
+    isbn: string;
+    coverImage: string;
+    salePrice: number;
+  };
+  pointsUsed?: number;
+  priceDifference?: number;
+  direction?: 'refund' | 'additional';
+  customerName?: string;
+  customerPhone?: string;
+  notes: string;
 }

@@ -1,4 +1,4 @@
-import type { Book, Sale, TradeIn, PriceHistory, BookRequest, SmsNotification } from '@/types';
+import type { Book, Sale, TradeIn, PriceHistory, BookRequest, SmsNotification, CustomerPointsAccount, TradeInWithPoints } from '@/types';
 
 const STORAGE_KEYS = {
   BOOKS: 'bookstore_books',
@@ -7,6 +7,8 @@ const STORAGE_KEYS = {
   PRICE_HISTORY: 'bookstore_price_history',
   BOOK_REQUESTS: 'bookstore_book_requests',
   SMS_NOTIFICATIONS: 'bookstore_sms_notifications',
+  POINTS_ACCOUNTS: 'bookstore_points_accounts',
+  TRADE_INS_WITH_POINTS: 'bookstore_trade_ins_with_points',
 };
 
 export function saveToStorage<T>(key: string, data: T): void {
@@ -73,4 +75,20 @@ export function saveSmsNotifications(notifications: SmsNotification[]): void {
 
 export function loadSmsNotifications(): SmsNotification[] {
   return loadFromStorage<SmsNotification[]>(STORAGE_KEYS.SMS_NOTIFICATIONS, []);
+}
+
+export function savePointsAccounts(accounts: CustomerPointsAccount[]): void {
+  saveToStorage(STORAGE_KEYS.POINTS_ACCOUNTS, accounts);
+}
+
+export function loadPointsAccounts(): CustomerPointsAccount[] {
+  return loadFromStorage<CustomerPointsAccount[]>(STORAGE_KEYS.POINTS_ACCOUNTS, []);
+}
+
+export function saveTradeInsWithPoints(tradeIns: TradeInWithPoints[]): void {
+  saveToStorage(STORAGE_KEYS.TRADE_INS_WITH_POINTS, tradeIns);
+}
+
+export function loadTradeInsWithPoints(): TradeInWithPoints[] {
+  return loadFromStorage<TradeInWithPoints[]>(STORAGE_KEYS.TRADE_INS_WITH_POINTS, []);
 }

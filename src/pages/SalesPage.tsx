@@ -13,6 +13,9 @@ import {
   Check,
   Search,
   Camera,
+  Coins,
+  User,
+  Phone,
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { BookCard } from '@/components/BookCard';
@@ -22,7 +25,9 @@ import { ConditionBadge } from '@/components/ConditionBadge';
 import { ConditionPhotoGallery } from '@/components/ConditionPhotoGallery';
 import { useBookStore } from '@/store/useBookStore';
 import { useSaleStore } from '@/store/useSaleStore';
+import { usePointsStore } from '@/store/usePointsStore';
 import { formatCurrency, formatDateTime } from '@/utils/format';
+import { convertPointsToYuan, POINTS_TO_YUAN_RATE } from '@/utils/pricing';
 import type { PaymentMethod, Book } from '@/types';
 
 type TabType = 'checkout' | 'history';
@@ -40,9 +45,15 @@ export function SalesPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const [usePoints, setUsePoints] = useState(false);
+  const [pointsToUse, setPointsToUse] = useState(0);
+  const [customerPhoneForPoints, setCustomerPhoneForPoints] = useState('');
+  const [customerNameForPoints, setCustomerNameForPoints] = useState('');
+
   const { books, getBookByIsbn } = useBookStore();
   const { cart, addToCart, removeFromCart, updateCartQuantity, clearCart, getCartTotal, checkout, sales } =
     useSaleStore();
+  const { deductPoints, getAccountByPhone } = usePointsStore();
 
   const onSaleBooks = books.filter((b) => b.status === 'on_sale');
   const filteredBooks = onSaleBooks.filter(
@@ -52,8 +63,12 @@ export function SalesPage() {
       book.isbn.includes(searchQuery)
   );
 
+  const customerPointsAccount = customerPhoneForPoints ? getAccountByPhone(customerPhoneForPoints) : undefined;
+  const customerPointsBalance = customerPointsAccount?.balance || 0;
+  const pointsDeductionValue = usePoints ? convertPointsToYuan(pointsToUse) : 0;
+
   const cartTotal = getCartTotal();
-  const actualAmount = Math.max(0, Math.round((cartTotal - discount) * 100) / 100);
+  const actualAmount = Math.max(0, Math.round((cartTotal - discount - pointsDeductionValue) * 100) / 100);
   const change = Math.max(0, Math.round((receivedAmount - actualAmount) * 100) / 100);
 
   const handleIsbnScan = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -81,12 +96,42 @@ export function SalesPage() {
   };
 
   const confirmCheckout = () => {
-    const sale = checkout(paymentMethod, discount, '');
+    if (usePoints && pointsToUse > 0) {
+      if (!customerPhoneForPoints.trim() || !customerNameForPoints.trim()) {
+        alert('请填写会员姓名和手机号');
+        return;
+      }
+      if (pointsToUse > customerPointsBalance) {
+        alert(`积分不足，当前余额：${customerPointsBalance}`);
+        return;
+      }
+      const result = deductPoints(
+        customerPhoneForPoints.trim(),
+        customerNameForPoints.trim(),
+        pointsToUse,
+        `购书抵扣 ${cart.length} 本书籍`,
+      );
+      if (!result.success) {
+        alert(result.message);
+        return;
+      }
+    }
+
+    const totalDiscount = discount + pointsDeductionValue;
+    const sale = checkout(paymentMethod, totalDiscount, usePoints ? `积分抵扣${pointsToUse}分` : '');
     setIsCheckoutModalOpen(false);
     setShowSuccess(true);
-    setSuccessMessage(`销售成功！单号：${sale.id.slice(-8).toUpperCase()}，实收：${formatCurrency(sale.actualAmount)}`);
+    let msg = `销售成功！单号：${sale.id.slice(-8).toUpperCase()}，实收：${formatCurrency(sale.actualAmount)}`;
+    if (usePoints && pointsToUse > 0) {
+      msg += `\n使用 ${pointsToUse} 积分抵扣 ${formatCurrency(pointsDeductionValue)}`;
+    }
+    setSuccessMessage(msg);
     setDiscount(0);
     setReceivedAmount(0);
+    setUsePoints(false);
+    setPointsToUse(0);
+    setCustomerPhoneForPoints('');
+    setCustomerNameForPoints('');
 
     setTimeout(() => {
       setShowSuccess(false);
@@ -260,7 +305,7 @@ export function SalesPage() {
                 )}
               </div>
 
-              <div className="border-t border-brown-100 pt-4 space-y-2">
+              <div className="border-t border-brown-100 pt-4 space-y-3">
                 <div className="flex justify-between text-sm text-brown-600">
                   <span>商品总计</span>
                   <span>{formatCurrency(cartTotal)}</span>
@@ -279,6 +324,115 @@ export function SalesPage() {
                     <span>元</span>
                   </div>
                 </div>
+
+                <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 space-y-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={usePoints}
+                      onChange={(e) => {
+                        setUsePoints(e.target.checked);
+                        if (!e.target.checked) {
+                          setPointsToUse(0);
+                        } else if (cartTotal > 0 && customerPointsBalance > 0) {
+                          const maxPoints = Math.min(
+                            customerPointsBalance,
+                            Math.floor((cartTotal - discount) / POINTS_TO_YUAN_RATE)
+                          );
+                          setPointsToUse(maxPoints);
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-brown-300 text-amber-500 focus:ring-amber-400"
+                    />
+                    <span className="text-sm font-medium text-brown-700 flex items-center gap-1">
+                      <Coins className="w-4 h-4 text-amber-500" />
+                      使用积分抵扣
+                    </span>
+                  </label>
+
+                  {usePoints && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-brown-500 mb-0.5 block">姓名</label>
+                          <div className="relative">
+                            <User className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-brown-400" />
+                            <input
+                              type="text"
+                              value={customerNameForPoints}
+                              onChange={(e) => setCustomerNameForPoints(e.target.value)}
+                              className="input pl-7 py-1.5 text-sm"
+                              placeholder="会员姓名"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs text-brown-500 mb-0.5 block">手机号</label>
+                          <div className="relative">
+                            <Phone className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-brown-400" />
+                            <input
+                              type="tel"
+                              value={customerPhoneForPoints}
+                              onChange={(e) => {
+                                setCustomerPhoneForPoints(e.target.value);
+                              }}
+                              className="input pl-7 py-1.5 text-sm"
+                              placeholder="查询积分"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {customerPointsAccount && (
+                        <div className="text-xs text-olive-600">
+                          会员：{customerPointsAccount.customerName}，可用积分：
+                          <span className="font-bold">{customerPointsBalance.toLocaleString()}</span>
+                          <span className="text-brown-400 ml-1">
+                            (≈{formatCurrency(convertPointsToYuan(customerPointsBalance))})
+                          </span>
+                        </div>
+                      )}
+
+                      {customerPhoneForPoints && !customerPointsAccount && (
+                        <div className="text-xs text-brown-400">
+                          未找到该会员，请先在"积分中心"建档
+                        </div>
+                      )}
+
+                      {customerPointsBalance > 0 && (
+                        <>
+                          <input
+                            type="range"
+                            min="0"
+                            max={Math.min(
+                              customerPointsBalance,
+                              Math.floor((cartTotal - discount) / POINTS_TO_YUAN_RATE)
+                            )}
+                            value={pointsToUse}
+                            onChange={(e) => setPointsToUse(parseInt(e.target.value))}
+                            className="w-full accent-amber-500"
+                          />
+                          <div className="flex justify-between text-xs">
+                            <span className="text-brown-600">
+                              使用 {pointsToUse.toLocaleString()} 积分
+                            </span>
+                            <span className="text-olive-600 font-medium">
+                              抵扣 {formatCurrency(convertPointsToYuan(pointsToUse))}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {pointsDeductionValue > 0 && (
+                  <div className="flex justify-between text-sm text-olive-600">
+                    <span>积分抵扣</span>
+                    <span>-{formatCurrency(pointsDeductionValue)}</span>
+                  </div>
+                )}
+
                 <div className="flex justify-between text-lg font-bold text-brown-800 pt-2 border-t border-brown-100">
                   <span>应收金额</span>
                   <span className="text-amber-600">{formatCurrency(actualAmount)}</span>
@@ -400,6 +554,15 @@ export function SalesPage() {
               <div className="flex justify-between mb-2">
                 <span className="text-brown-600">优惠</span>
                 <span className="text-red-500">-{formatCurrency(discount)}</span>
+              </div>
+            )}
+            {pointsDeductionValue > 0 && (
+              <div className="flex justify-between mb-2">
+                <span className="text-brown-600 flex items-center gap-1">
+                  <Coins className="w-3.5 h-3.5 text-amber-500" />
+                  积分抵扣 ({pointsToUse}分)
+                </span>
+                <span className="text-olive-600">-{formatCurrency(pointsDeductionValue)}</span>
               </div>
             )}
             <div className="flex justify-between text-xl font-bold pt-2 border-t border-brown-200">

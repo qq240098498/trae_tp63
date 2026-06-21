@@ -16,6 +16,14 @@ export const conditionFactors: Record<BookCondition, number> = {
   poor: 1.0,
 };
 
+export const conditionPointsFactors: Record<BookCondition, number> = {
+  new: 10,
+  like_new: 8,
+  good: 6,
+  fair: 4,
+  poor: 2,
+};
+
 export const scarcityLabels: Record<ScarcityLevel, string> = {
   rare: '罕见',
   uncommon: '较少',
@@ -29,6 +37,9 @@ export const scarcityFactors: Record<ScarcityLevel, number> = {
   common: 1.0,
   abundant: 0.8,
 };
+
+export const POINTS_TO_YUAN_RATE = 0.1;
+export const YUAN_TO_POINTS_RATE = 10;
 
 export function calculateSalePrice(
   purchasePrice: number,
@@ -48,4 +59,21 @@ export function calculateTradeInValue(
   const conditionFactor = conditionFactors[condition];
   const value = originalPrice * conditionFactor * 0.5;
   return Math.round(value * 100) / 100;
+}
+
+export function calculateTradeInPoints(
+  originalPrice: number,
+  condition: BookCondition
+): number {
+  const factor = conditionPointsFactors[condition];
+  const points = Math.round(originalPrice * factor);
+  return points;
+}
+
+export function convertPointsToYuan(points: number): number {
+  return Math.round(points * POINTS_TO_YUAN_RATE * 100) / 100;
+}
+
+export function convertYuanToPoints(yuan: number): number {
+  return Math.round(yuan * YUAN_TO_POINTS_RATE);
 }
