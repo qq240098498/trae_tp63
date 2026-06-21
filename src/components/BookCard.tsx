@@ -1,6 +1,7 @@
 import { Book } from '@/types';
 import { ConditionBadge } from './ConditionBadge';
 import { StatusBadge } from './StatusBadge';
+import { PremiumBadge } from './PremiumBadge';
 import { formatCurrency } from '@/utils/format';
 
 interface BookCardProps {
@@ -24,6 +25,7 @@ export function BookCard({ book, onClick, showActions = false, onAddToCart }: Bo
         />
         <div className="absolute top-2 left-2 flex flex-col gap-1">
           <StatusBadge status={book.status} size="sm" />
+          <PremiumBadge premiumInfo={book.premiumInfo} size="sm" />
         </div>
         <div className="absolute bottom-2 right-2">
           <ConditionBadge condition={book.condition} size="sm" />

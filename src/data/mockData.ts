@@ -1,5 +1,6 @@
 import type { Book, Sale, TradeIn, BookRequest, SmsNotification } from '@/types';
 import { generateId } from '@/utils/format';
+import { calculatePremiumInfo } from '@/utils/pricing';
 
 const now = new Date();
 
@@ -9,8 +10,26 @@ function daysAgo(days: number): string {
   return date.toISOString();
 }
 
+function addPremiumData(book: Omit<Book, 'premiumInfo'>, doubanRating?: number, doubanWantToRead?: number, kongfzPrice?: number): Book {
+  const b = book as Book;
+  if (doubanRating !== undefined) b.doubanRating = doubanRating;
+  if (doubanWantToRead !== undefined) b.doubanWantToRead = doubanWantToRead;
+  if (kongfzPrice !== undefined) b.kongfzPrice = kongfzPrice;
+  
+  const premiumInfo = calculatePremiumInfo(
+    book.salePrice,
+    doubanRating,
+    doubanWantToRead,
+    kongfzPrice
+  );
+  if (premiumInfo.level !== 'none') {
+    b.premiumInfo = premiumInfo;
+  }
+  return b;
+}
+
 export const mockBooks: Book[] = [
-  {
+  addPremiumData({
     id: generateId(),
     isbn: '9787020002207',
     title: '红楼梦',
@@ -34,7 +53,7 @@ export const mockBooks: Book[] = [
     ],
     createdAt: daysAgo(15),
     updatedAt: daysAgo(15),
-  },
+  }, 9.6, 5000, 68),
   {
     id: generateId(),
     isbn: '9787544270878',
@@ -60,7 +79,7 @@ export const mockBooks: Book[] = [
     createdAt: daysAgo(10),
     updatedAt: daysAgo(10),
   },
-  {
+  addPremiumData({
     id: generateId(),
     isbn: '9787532754688',
     title: '百年孤独',
@@ -85,7 +104,7 @@ export const mockBooks: Book[] = [
     ],
     createdAt: daysAgo(20),
     updatedAt: daysAgo(5),
-  },
+  }, 9.3, 3000, 55),
   {
     id: generateId(),
     isbn: '9787530211701',
@@ -132,7 +151,7 @@ export const mockBooks: Book[] = [
     createdAt: daysAgo(2),
     updatedAt: daysAgo(2),
   },
-  {
+  addPremiumData({
     id: generateId(),
     isbn: '9787544253994',
     title: '白夜行',
@@ -156,7 +175,7 @@ export const mockBooks: Book[] = [
     ],
     createdAt: daysAgo(7),
     updatedAt: daysAgo(7),
-  },
+  }, 9.1, 8000, 120),
   {
     id: generateId(),
     isbn: '9787532742489',

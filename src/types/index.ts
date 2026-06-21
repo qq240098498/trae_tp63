@@ -8,6 +8,19 @@ export type PaymentMethod = 'cash' | 'wechat' | 'alipay' | 'card';
 
 export type ScarcityLevel = 'rare' | 'uncommon' | 'common' | 'abundant';
 
+export type PremiumLevel = 'high' | 'medium' | 'low' | 'none';
+
+export interface PremiumInfo {
+  level: PremiumLevel;
+  score: number;
+  suggestedPrice: number;
+  priceRatio: number;
+  reasons: string[];
+  isConfirmed: boolean;
+  confirmedAt?: string;
+  confirmedBy?: string;
+}
+
 export type PointsTransactionType = 'earn_trade_in' | 'spend_purchase' | 'bonus' | 'adjust' | 'expire';
 
 export type TradeInMode = 'value' | 'points';
@@ -67,6 +80,10 @@ export interface Book {
   location: string;
   notes: string;
   conditionPhotos: ConditionPhoto[];
+  doubanRating?: number;
+  doubanWantToRead?: number;
+  kongfzPrice?: number;
+  premiumInfo?: PremiumInfo;
   createdAt: string;
   updatedAt: string;
 }

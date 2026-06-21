@@ -1,4 +1,4 @@
-import type { BookCondition, ScarcityLevel } from '@/types';
+import type { BookCondition, ScarcityLevel, PremiumInfo, PremiumLevel } from '@/types';
 import { useSystemConfigStore } from '@/store/useSystemConfigStore';
 
 function readLabels(): Record<BookCondition, string> {
@@ -126,4 +126,113 @@ export function convertPointsToYuan(points: number): number {
 export function convertYuanToPoints(yuan: number): number {
   const rate = getYuanToPointsRate();
   return Math.round(yuan * rate);
+}
+
+export const premiumLabels: Record<PremiumLevel, string> = {
+  high: '高溢价',
+  medium: '中溢价',
+  low: '潜在溢价',
+  none: '无溢价',
+};
+
+export const premiumColors: Record<PremiumLevel, string> = {
+  high: 'text-red-600 bg-red-50',
+  medium: 'text-orange-600 bg-orange-50',
+  low: 'text-amber-600 bg-amber-50',
+  none: 'text-brown-400 bg-brown-50',
+};
+
+export const premiumIcons: Record<PremiumLevel, string> = {
+  high: '🔥',
+  medium: '⚡',
+  low: '📈',
+  none: '',
+};
+
+export function calculatePremiumInfo(
+  currentPrice: number,
+  doubanRating?: number,
+  doubanWantToRead?: number,
+  kongfzPrice?: number
+): PremiumInfo {
+  const reasons: string[] = [];
+  let score = 0;
+
+  if (doubanRating !== undefined && doubanRating >= 8.5) {
+    reasons.push(`豆瓣评分 ${doubanRating} 分`);
+    score += 0.4;
+  }
+
+  if (doubanWantToRead !== undefined && doubanWantToRead >= 1000) {
+    reasons.push(`豆瓣想读 ${doubanWantToRead.toLocaleString()} 人`);
+    score += 0.3;
+  }
+
+  let priceRatio = 0;
+  if (kongfzPrice !== undefined && kongfzPrice > 0 && currentPrice > 0) {
+    priceRatio = kongfzPrice / currentPrice;
+    if (priceRatio >= 1.5) {
+      reasons.push(`孔夫子售价 ¥${kongfzPrice}（高出当前 ${Math.round((priceRatio - 1) * 100)}%）`);
+      if (priceRatio >= 2.0) {
+        score += 0.5;
+      } else {
+        score += 0.3;
+      }
+    }
+  }
+
+  let level: PremiumLevel = 'none';
+  if (score >= 0.7 || priceRatio >= 2.0) {
+    level = 'high';
+  } else if (score >= 0.4 || priceRatio >= 1.5) {
+    level = 'medium';
+  } else if (reasons.length > 0) {
+    level = 'low';
+  }
+
+  const suggestedPrice = kongfzPrice ? Math.round(kongfzPrice * 0.85 * 100) / 100 : currentPrice;
+
+  return {
+    level,
+    score: Math.round(score * 100) / 100,
+    suggestedPrice,
+    priceRatio: Math.round(priceRatio * 100) / 100,
+    reasons,
+    isConfirmed: false,
+  };
+}
+
+export function updateBookPremiumInfo(book: {
+  salePrice: number;
+  doubanRating?: number;
+  doubanWantToRead?: number;
+  kongfzPrice?: number;
+  premiumInfo?: PremiumInfo;
+}): PremiumInfo | undefined {
+  const hasPremiumData =
+    book.doubanRating !== undefined ||
+    book.doubanWantToRead !== undefined ||
+    book.kongfzPrice !== undefined;
+
+  if (!hasPremiumData) {
+    return undefined;
+  }
+
+  const newPremiumInfo = calculatePremiumInfo(
+    book.salePrice,
+    book.doubanRating,
+    book.doubanWantToRead,
+    book.kongfzPrice
+  );
+
+  if (book.premiumInfo?.isConfirmed) {
+    return {
+      ...newPremiumInfo,
+      isConfirmed: true,
+      confirmedAt: book.premiumInfo.confirmedAt,
+      confirmedBy: book.premiumInfo.confirmedBy,
+    };
+  }
+
+  return newPremiumInfo;
 }

@@ -16,6 +16,10 @@ import {
   Coins,
   User,
   Phone,
+  TrendingUp,
+  Star,
+  Users,
+  Store,
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { BookCard } from '@/components/BookCard';
@@ -23,6 +27,7 @@ import { SearchBar } from '@/components/SearchBar';
 import { Modal } from '@/components/Modal';
 import { ConditionBadge } from '@/components/ConditionBadge';
 import { ConditionPhotoGallery } from '@/components/ConditionPhotoGallery';
+import { PremiumBadge } from '@/components/PremiumBadge';
 import { useBookStore } from '@/store/useBookStore';
 import { useSaleStore } from '@/store/useSaleStore';
 import { usePointsStore } from '@/store/usePointsStore';
@@ -51,7 +56,7 @@ export function SalesPage() {
   const [customerPhoneForPoints, setCustomerPhoneForPoints] = useState('');
   const [customerNameForPoints, setCustomerNameForPoints] = useState('');
 
-  const { books, getBookByIsbn } = useBookStore();
+  const { books, getBookByIsbn, confirmPremiumPrice } = useBookStore();
   const { cart, addToCart, removeFromCart, updateCartQuantity, clearCart, getCartTotal, checkout, sales } =
     useSaleStore();
   const { deductPoints, getAccountByPhone } = usePointsStore();
@@ -678,11 +683,111 @@ export function SalesPage() {
               </div>
 
               <div className="mb-6 p-4 bg-amber-50 rounded-xl">
-                <p className="text-sm text-amber-600 mb-1">售价</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-amber-600">售价</p>
+                  <PremiumBadge premiumInfo={selectedBook.premiumInfo} size="sm" />
+                </div>
                 <p className="text-2xl font-bold text-amber-600">
                   {formatCurrency(selectedBook.salePrice)}
                 </p>
               </div>
+
+              {selectedBook.premiumInfo && selectedBook.premiumInfo.level !== 'none' && (
+                <div className="mb-6 p-4 border rounded-xl space-y-4" style={{
+                  borderColor: selectedBook.premiumInfo.level === 'high' ? '#fecaca' : 
+                              selectedBook.premiumInfo.level === 'medium' ? '#fed7aa' : '#fde68a',
+                  backgroundColor: selectedBook.premiumInfo.level === 'high' ? '#fef2f2' : 
+                                  selectedBook.premiumInfo.level === 'medium' ? '#fff7ed' : '#fffbeb'
+                }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-amber-600" />
+                      <h3 className="font-semibold text-brown-800">溢价分析</h3>
+                    </div>
+                    <PremiumBadge premiumInfo={selectedBook.premiumInfo} size="md" />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    {selectedBook.doubanRating !== undefined && (
+                      <div className="p-3 bg-white rounded-lg">
+                        <div className="flex items-center gap-1 text-xs text-brown-500 mb-1">
+                          <Star className="w-3 h-3 text-amber-500" />
+                          豆瓣评分
+                        </div>
+                        <p className="text-lg font-bold text-brown-800">{selectedBook.doubanRating}</p>
+                      </div>
+                    )}
+                    {selectedBook.doubanWantToRead !== undefined && (
+                      <div className="p-3 bg-white rounded-lg">
+                        <div className="flex items-center gap-1 text-xs text-brown-500 mb-1">
+                          <Users className="w-3 h-3 text-olive-500" />
+                          豆瓣想读
+                        </div>
+                        <p className="text-lg font-bold text-brown-800">{selectedBook.doubanWantToRead.toLocaleString()}</p>
+                      </div>
+                    )}
+                    {selectedBook.kongfzPrice !== undefined && (
+                      <div className="p-3 bg-white rounded-lg">
+                        <div className="flex items-center gap-1 text-xs text-brown-500 mb-1">
+                          <Store className="w-3 h-3 text-brown-500" />
+                          孔夫子售价
+                        </div>
+                        <p className="text-lg font-bold text-brown-800">{formatCurrency(selectedBook.kongfzPrice)}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-brown-700">溢价原因：</p>
+                    <ul className="space-y-1">
+                      {selectedBook.premiumInfo.reasons.map((reason, idx) => (
+                        <li key={idx} className="text-sm text-brown-600 flex items-start gap-2">
+                          <span className="text-amber-500">•</span>
+                          {reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="p-4 bg-olive-50 rounded-lg border border-olive-100">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-olive-600 mb-1">建议售价</p>
+                        <p className="text-2xl font-bold text-olive-600">
+                          {formatCurrency(selectedBook.premiumInfo.suggestedPrice)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-brown-500 mb-1">预计涨幅</p>
+                        <p className="text-xl font-bold text-olive-600">
+                          +{Math.round((selectedBook.premiumInfo.suggestedPrice / selectedBook.salePrice - 1) * 100)}%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {!selectedBook.premiumInfo.isConfirmed ? (
+                    <button
+                      onClick={() => {
+                        confirmPremiumPrice(selectedBook.id, '店员');
+                        setSelectedBook({ ...selectedBook });
+                      }}
+                      className="w-full btn btn-success flex items-center justify-center gap-2"
+                    >
+                      <Check className="w-4 h-4" />
+                      确认溢价，调整为 {formatCurrency(selectedBook.premiumInfo.suggestedPrice)}
+                    </button>
+                  ) : (
+                    <div className="p-3 bg-olive-50 rounded-lg text-center">
+                      <p className="text-sm text-olive-600">
+                        <Check className="w-4 h-4 inline mr-1" />
+                        已于 {selectedBook.premiumInfo.confirmedAt && formatDateTime(selectedBook.premiumInfo.confirmedAt)} 确认
+                        {selectedBook.premiumInfo.confirmedBy && ` (${selectedBook.premiumInfo.confirmedBy})`}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {selectedBook.description && (
                 <div className="mb-6">

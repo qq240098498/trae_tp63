@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Book, BookFormData, PriceHistory, ScarcityLevel } from '@/types';
 import { generateId } from '@/utils/format';
-import { calculateSalePrice } from '@/utils/pricing';
+import { calculateSalePrice, updateBookPremiumInfo } from '@/utils/pricing';
 import { loadBooks, saveBooks, loadPriceHistory, savePriceHistory } from '@/utils/storage';
 import { mockBooks } from '@/data/mockData';
 
@@ -24,6 +24,9 @@ interface BookStore {
   getPendingBooks: () => Book[];
   autoPriceBook: (id: string) => void;
   batchUpdatePrice: (ids: string[], factor: number, reason: string) => void;
+  confirmPremiumPrice: (id: string, operator?: string) => void;
+  updateBookMarketData: (id: string, data: { doubanRating?: number; doubanWantToRead?: number; kongfzPrice?: number }) => void;
+  getBooksWithPremium: () => Book[];
 }
 
 export const useBookStore = create<BookStore>((set, get) => ({
@@ -179,6 +182,60 @@ export const useBookStore = create<BookStore>((set, get) => ({
         get().updatePrice(id, newPrice, reason);
       }
     });
+  },
+
+  confirmPremiumPrice: (id: string, operator?: string) => {
+    const book = get().getBookById(id);
+    if (!book || !book.premiumInfo) return;
+
+    const newPrice = book.premiumInfo.suggestedPrice;
+    const reason = `溢价确认：${book.premiumInfo.reasons.join('；')}`;
+
+    get().updatePrice(id, newPrice, reason);
+
+    const books = get().books.map(b =>
+      b.id === id
+        ? {
+            ...b,
+            premiumInfo: {
+              ...b.premiumInfo!,
+              isConfirmed: true,
+              confirmedAt: new Date().toISOString(),
+              confirmedBy: operator || '系统',
+            },
+            updatedAt: new Date().toISOString(),
+          }
+        : b
+    );
+
+    set({ books });
+    saveBooks(books);
+  },
+
+  updateBookMarketData: (id: string, data: { doubanRating?: number; doubanWantToRead?: number; kongfzPrice?: number }) => {
+    const book = get().getBookById(id);
+    if (!book) return;
+
+    const updatedBook = {
+      ...book,
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const premiumInfo = updateBookPremiumInfo(updatedBook);
+    if (premiumInfo) {
+      updatedBook.premiumInfo = premiumInfo;
+    }
+
+    const books = get().books.map(b => (b.id === id ? updatedBook : b));
+    set({ books });
+    saveBooks(books);
+  },
+
+  getBooksWithPremium: () => {
+    return get().books.filter(
+      b => b.premiumInfo && b.premiumInfo.level !== 'none' && b.status === 'on_sale'
+    );
   },
 }));
 
