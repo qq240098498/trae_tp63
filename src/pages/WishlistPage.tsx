@@ -54,7 +54,6 @@ export function WishlistPage() {
     updateRequestStatus,
     deleteBookRequest,
     createSmsNotification,
-    markNotificationSent,
     markNotificationRead,
     matchBookToRequests,
   } = useBookRequestStore();
@@ -154,45 +153,52 @@ export function WishlistPage() {
   };
 
   const handleSendNotification = () => {
-    if (!selectedRequest) return;
+    if (!selectedRequest) {
+      alert('请先选择一条缺书登记');
+      return;
+    }
 
-    const matchedBook = books.find(
-      (b) =>
-        (selectedRequest.isbn && b.isbn === selectedRequest.isbn) ||
-        b.title === selectedRequest.title
-    );
+    try {
+      const matchedBook = books.find(
+        (b) =>
+          (selectedRequest.isbn && b.isbn === selectedRequest.isbn) ||
+          (selectedRequest.title && b.title === selectedRequest.title)
+      );
 
-    const bookForNotification = matchedBook || {
-      id: 'virtual',
-      isbn: selectedRequest.isbn,
-      title: selectedRequest.title,
-      author: selectedRequest.author,
-      publisher: selectedRequest.publisher,
-      publishDate: '',
-      coverImage: '',
-      description: '',
-      condition: 'good' as const,
-      purchasePrice: 0,
-      salePrice: selectedRequest.maxPrice || 0,
-      scarcityFactor: 1,
-      scarcityLevel: 'common' as const,
-      status: 'on_sale' as const,
-      location: '',
-      notes: '',
-      conditionPhotos: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+      const bookForNotification = matchedBook || {
+        id: 'virtual_' + Date.now(),
+        isbn: selectedRequest.isbn || '',
+        title: selectedRequest.title,
+        author: selectedRequest.author || '',
+        publisher: selectedRequest.publisher || '',
+        publishDate: '',
+        coverImage: '',
+        description: '',
+        condition: 'good' as const,
+        purchasePrice: 0,
+        salePrice: selectedRequest.maxPrice || 0,
+        scarcityFactor: 1,
+        scarcityLevel: 'common' as const,
+        status: 'on_sale' as const,
+        location: '',
+        notes: '',
+        conditionPhotos: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-    const notification = createSmsNotification(selectedRequest, bookForNotification);
-    markNotificationSent(notification.id);
+      const notification = createSmsNotification(selectedRequest, bookForNotification, true);
 
-    alert(
-      `已向 ${selectedRequest.customerName} (${selectedRequest.customerPhone}) 发送短信通知！\n\n短信内容：\n${notification.message}`
-    );
+      alert(
+        `短信通知发送成功！\n\n收件人：${selectedRequest.customerName} (${selectedRequest.customerPhone})\n短信内容：\n${notification.message}`
+      );
 
-    setIsNotifyModalOpen(false);
-    setSelectedRequest(null);
+      setIsNotifyModalOpen(false);
+      setSelectedRequest(null);
+    } catch (error) {
+      console.error('发送短信通知失败:', error);
+      alert('发送通知失败：' + (error instanceof Error ? error.message : '未知错误'));
+    }
   };
 
   const filteredRequests = bookRequests

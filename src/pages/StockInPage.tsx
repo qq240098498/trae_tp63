@@ -40,7 +40,7 @@ export function StockInPage() {
   });
 
   const addBook = useBookStore((state) => state.addBook);
-  const { matchBookToRequests, createSmsNotification, markNotificationSent } = useBookRequestStore();
+  const { matchBookToRequests, createSmsNotification } = useBookRequestStore();
 
   const handleIsbnSearch = async () => {
     if (!validateIsbn(isbn)) {
@@ -87,22 +87,31 @@ export function StockInPage() {
       return;
     }
 
-    const newBook = addBook(formData);
-    const matched = matchBookToRequests(newBook);
+    try {
+      const newBook = addBook(formData);
+      const matched = matchBookToRequests(newBook);
 
-    if (matched.length > 0) {
-      setMatchedRequests(matched);
-      setIsMatchModalOpen(true);
-      setSuccessMessage(
-        `"${newBook.title}" 入库成功！发现 ${matched.length} 条匹配的缺书登记，建议售价：${formatCurrency(newBook.salePrice)}`
-      );
+      if (matched.length > 0) {
+        setMatchedRequests(matched);
+        setIsMatchModalOpen(true);
+        setSuccessMessage(
+          `"${newBook.title}" 入库成功！发现 ${matched.length} 条匹配的缺书登记，建议售价：${formatCurrency(newBook.salePrice)}`
+        );
 
-      matched.forEach((req) => {
-        const notification = createSmsNotification(req, newBook);
-        markNotificationSent(notification.id);
-      });
-    } else {
-      setSuccessMessage(`"${newBook.title}" 入库成功！建议售价：${formatCurrency(newBook.salePrice)}`);
+        matched.forEach((req) => {
+          try {
+            createSmsNotification(req, newBook, true);
+          } catch (err) {
+            console.error('创建短信通知失败:', err);
+          }
+        });
+      } else {
+        setSuccessMessage(`"${newBook.title}" 入库成功！建议售价：${formatCurrency(newBook.salePrice)}`);
+      }
+    } catch (error) {
+      console.error('入库失败:', error);
+      alert('入库失败：' + (error instanceof Error ? error.message : '未知错误'));
+      return;
     }
 
     setTimeout(() => {

@@ -29,7 +29,7 @@ interface BookRequestStore {
   getRequestById: (id: string) => BookRequest | undefined;
 
   matchBookToRequests: (book: Book) => BookRequest[];
-  createSmsNotification: (request: BookRequest, book: Book) => SmsNotification;
+  createSmsNotification: (request: BookRequest, book: Book, autoMarkSent?: boolean) => SmsNotification;
   markNotificationSent: (id: string) => void;
   markNotificationRead: (id: string) => void;
   getUnreadNotifications: () => SmsNotification[];
@@ -140,19 +140,27 @@ export const useBookRequestStore = create<BookRequestStore>((set, get) => ({
     return matched;
   },
 
-  createSmsNotification: (request: BookRequest, book: Book) => {
-    const message = `【旧书店通知】尊敬的${request.customerName}，您登记的《${book.title}》已到货！售价：${book.salePrice}元，请尽快到店选购。`;
+  createSmsNotification: (request: BookRequest, book: Book, autoMarkSent = true) => {
+    const safeRequest = request || {} as BookRequest;
+    const safeBook = book || {} as Book;
+
+    const customerName = safeRequest.customerName || '顾客';
+    const bookTitle = safeBook.title || safeRequest.title || '该书';
+    const bookPrice = safeBook.salePrice || safeRequest.maxPrice || 0;
+
+    const message = `【旧书店通知】尊敬的${customerName}，您登记的《${bookTitle}》已到货！售价：${bookPrice}元，请尽快到店选购。`;
 
     const notification: SmsNotification = {
       id: generateId(),
-      bookRequestId: request.id,
-      customerName: request.customerName,
-      customerPhone: request.customerPhone,
-      bookTitle: book.title,
-      bookIsbn: book.isbn,
-      bookId: book.id,
+      bookRequestId: safeRequest.id || '',
+      customerName: customerName,
+      customerPhone: safeRequest.customerPhone || '',
+      bookTitle: bookTitle,
+      bookIsbn: safeBook.isbn || safeRequest.isbn || '',
+      bookId: safeBook.id || '',
       message,
-      status: 'pending',
+      status: autoMarkSent ? 'sent' : 'pending',
+      sentAt: autoMarkSent ? new Date().toISOString() : undefined,
       createdAt: new Date().toISOString(),
     };
 
@@ -160,10 +168,12 @@ export const useBookRequestStore = create<BookRequestStore>((set, get) => ({
     set({ smsNotifications });
     saveSmsNotifications(smsNotifications);
 
-    get().updateBookRequest(request.id, {
-      status: 'notified',
-      matchedBookId: book.id,
-    });
+    if (safeRequest.id) {
+      get().updateBookRequest(safeRequest.id, {
+        status: 'notified',
+        matchedBookId: safeBook.id || undefined,
+      });
+    }
 
     return notification;
   },
