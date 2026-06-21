@@ -115,6 +115,7 @@ export function TradeInPage() {
       scarcityLevel: 'common' as ScarcityLevel,
       location: '',
       notes: oldBookNotes + ' (以旧换新旧书)',
+      conditionPhotos: [],
     };
 
     const addedOldBook = addBook(oldBookData);

@@ -54,6 +54,7 @@ export const useBookStore = create<BookStore>((set, get) => ({
     const newBook: Book = {
       id: generateId(),
       ...formData,
+      conditionPhotos: formData.conditionPhotos || [],
       salePrice,
       scarcityFactor: getScarcityFactor(formData.scarcityLevel),
       status: 'pending',

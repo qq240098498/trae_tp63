@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Scan, BookPlus, Check, Info } from 'lucide-react';
+import { Scan, BookPlus, Check, Info, Camera } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { ConditionBadge } from '@/components/ConditionBadge';
+import { ConditionPhotoUploader } from '@/components/ConditionPhotoUploader';
 import { useBookStore } from '@/store/useBookStore';
 import { lookupIsbn, validateIsbn } from '@/utils/isbn';
 import { calculateSalePrice, conditionLabels, scarcityLabels } from '@/utils/pricing';
 import { formatCurrency } from '@/utils/format';
-import type { BookCondition, ScarcityLevel, BookFormData, IsbnLookupResult } from '@/types';
+import type { BookCondition, ScarcityLevel, BookFormData, IsbnLookupResult, ConditionPhoto } from '@/types';
 
 type InputMode = 'scan' | 'manual';
 
@@ -31,6 +32,7 @@ export function StockInPage() {
     scarcityLevel: 'common',
     location: '',
     notes: '',
+    conditionPhotos: [],
   });
 
   const addBook = useBookStore((state) => state.addBook);
@@ -107,6 +109,7 @@ export function StockInPage() {
       scarcityLevel: 'common',
       location: '',
       notes: '',
+      conditionPhotos: [],
     });
   };
 
@@ -330,6 +333,18 @@ export function StockInPage() {
                 />
               </div>
 
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Camera className="w-5 h-5 text-brown-600" />
+                  <label className="input-label text-base mb-0">品相拍照留档</label>
+                  <span className="text-xs text-brown-400">拍摄封面、书脊、内页及瑕疵照片，用于线上展示</span>
+                </div>
+                <ConditionPhotoUploader
+                  photos={formData.conditionPhotos}
+                  onChange={(photos) => handleInputChange('conditionPhotos', photos as any)}
+                />
+              </div>
+
               {formData.purchasePrice > 0 && (
                 <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
                   <div className="flex items-center gap-2 text-amber-700 mb-2">
@@ -449,6 +464,21 @@ export function StockInPage() {
                     </span>
                   </div>
                 </div>
+
+                {formData.conditionPhotos.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-brown-100">
+                    <p className="text-sm font-medium text-brown-700 mb-2">
+                      品相照片 ({formData.conditionPhotos.length})
+                    </p>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {formData.conditionPhotos.slice(0, 8).map((photo) => (
+                        <div key={photo.id} className="aspect-square rounded overflow-hidden bg-brown-100">
+                          <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-12 text-brown-400">

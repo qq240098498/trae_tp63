@@ -12,11 +12,14 @@ import {
   Receipt,
   Check,
   Search,
+  Camera,
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { BookCard } from '@/components/BookCard';
 import { SearchBar } from '@/components/SearchBar';
 import { Modal } from '@/components/Modal';
+import { ConditionBadge } from '@/components/ConditionBadge';
+import { ConditionPhotoGallery } from '@/components/ConditionPhotoGallery';
 import { useBookStore } from '@/store/useBookStore';
 import { useSaleStore } from '@/store/useSaleStore';
 import { formatCurrency, formatDateTime } from '@/utils/format';
@@ -29,6 +32,8 @@ export function SalesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isbnInput, setIsbnInput] = useState('');
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [receivedAmount, setReceivedAmount] = useState(0);
   const [discount, setDiscount] = useState(0);
@@ -63,6 +68,11 @@ export function SalesPage() {
 
   const handleAddToCart = (book: Book) => {
     addToCart(book);
+  };
+
+  const handleViewDetail = (book: Book) => {
+    setSelectedBook(book);
+    setIsDetailModalOpen(true);
   };
 
   const handleCheckout = () => {
@@ -171,6 +181,7 @@ export function SalesPage() {
                     key={book.id}
                     book={book}
                     showActions
+                    onClick={() => handleViewDetail(book)}
                     onAddToCart={() => handleAddToCart(book)}
                   />
                 ))}
@@ -461,6 +472,95 @@ export function SalesPage() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        title="书籍详情"
+        size="lg"
+      >
+        {selectedBook && (
+          <div className="flex flex-col lg:flex-row gap-6">
+            <div className="lg:w-48 flex-shrink-0">
+              <img
+                src={selectedBook.coverImage}
+                alt={selectedBook.title}
+                className="w-full shadow-card rounded-xl"
+              />
+              <div className="mt-4 space-y-2">
+                <ConditionBadge condition={selectedBook.condition} />
+              </div>
+            </div>
+
+            <div className="flex-1">
+              <h2 className="font-serif text-2xl font-bold text-brown-800 mb-1">
+                {selectedBook.title}
+              </h2>
+              <p className="text-brown-600 mb-4">{selectedBook.author}</p>
+
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <p className="text-sm text-brown-500 mb-1">出版社</p>
+                  <p className="text-brown-700">{selectedBook.publisher || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-brown-500 mb-1">ISBN</p>
+                  <p className="text-brown-700 font-mono text-sm">
+                    {selectedBook.isbn}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mb-6 p-4 bg-amber-50 rounded-xl">
+                <p className="text-sm text-amber-600 mb-1">售价</p>
+                <p className="text-2xl font-bold text-amber-600">
+                  {formatCurrency(selectedBook.salePrice)}
+                </p>
+              </div>
+
+              {selectedBook.description && (
+                <div className="mb-6">
+                  <p className="text-sm text-brown-500 mb-2">书籍简介</p>
+                  <p className="text-sm text-brown-600 leading-relaxed">
+                    {selectedBook.description}
+                  </p>
+                </div>
+              )}
+
+              <div className="mb-6">
+                <p className="text-sm text-brown-500 mb-3 flex items-center gap-1">
+                  <Camera className="w-4 h-4" />
+                  品相实拍照片
+                  {selectedBook.conditionPhotos?.length > 0 && (
+                    <span className="ml-2 text-xs bg-olive-100 text-olive-700 px-2 py-0.5 rounded-full">
+                      {selectedBook.conditionPhotos.length} 张
+                    </span>
+                  )}
+                </p>
+                <ConditionPhotoGallery photos={selectedBook.conditionPhotos || []} />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="flex-1 btn btn-secondary"
+                >
+                  关闭
+                </button>
+                <button
+                  onClick={() => {
+                    handleAddToCart(selectedBook);
+                    setIsDetailModalOpen(false);
+                  }}
+                  className="flex-1 btn btn-primary"
+                >
+                  加入购物车
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

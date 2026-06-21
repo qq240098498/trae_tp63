@@ -8,6 +8,14 @@ export type PaymentMethod = 'cash' | 'wechat' | 'alipay' | 'card';
 
 export type ScarcityLevel = 'rare' | 'uncommon' | 'common' | 'abundant';
 
+export interface ConditionPhoto {
+  id: string;
+  type: 'cover' | 'spine' | 'inside' | 'defect';
+  url: string;
+  description?: string;
+  uploadedAt: string;
+}
+
 export interface Book {
   id: string;
   isbn: string;
@@ -25,6 +33,7 @@ export interface Book {
   status: BookStatus;
   location: string;
   notes: string;
+  conditionPhotos: ConditionPhoto[];
   createdAt: string;
   updatedAt: string;
 }
@@ -97,6 +106,7 @@ export interface BookFormData {
   scarcityLevel: ScarcityLevel;
   location: string;
   notes: string;
+  conditionPhotos: ConditionPhoto[];
 }
 
 export interface IsbnLookupResult {

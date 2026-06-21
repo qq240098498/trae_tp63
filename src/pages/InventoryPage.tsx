@@ -10,12 +10,15 @@ import {
   Calendar,
   Tag,
   Info,
+  Camera,
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { SearchBar } from '@/components/SearchBar';
 import { ConditionBadge } from '@/components/ConditionBadge';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Modal } from '@/components/Modal';
+import { ConditionPhotoGallery } from '@/components/ConditionPhotoGallery';
+import { ConditionPhotoUploader } from '@/components/ConditionPhotoUploader';
 import { useBookStore } from '@/store/useBookStore';
 import { formatCurrency, formatDate, formatRelativeTime } from '@/utils/format';
 import { conditionLabels, scarcityLabels } from '@/utils/pricing';
@@ -449,6 +452,19 @@ export function InventoryPage() {
                 </div>
               )}
 
+              <div className="mb-6">
+                <p className="text-sm text-brown-500 mb-3 flex items-center gap-1">
+                  <Camera className="w-4 h-4" />
+                  品相实拍照片
+                  {selectedBook.conditionPhotos?.length > 0 && (
+                    <span className="ml-2 text-xs bg-olive-100 text-olive-700 px-2 py-0.5 rounded-full">
+                      {selectedBook.conditionPhotos.length} 张
+                    </span>
+                  )}
+                </p>
+                <ConditionPhotoGallery photos={selectedBook.conditionPhotos || []} />
+              </div>
+
               <div className="flex gap-2">
                 <button
                   onClick={() => handleEdit(selectedBook)}
@@ -598,6 +614,17 @@ export function InventoryPage() {
                 value={editForm.coverImage || ''}
                 onChange={(e) => setEditForm({ ...editForm, coverImage: e.target.value })}
                 className="input"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Camera className="w-4 h-4 text-brown-600" />
+                <label className="input-label mb-0">品相实拍照片</label>
+              </div>
+              <ConditionPhotoUploader
+                photos={editForm.conditionPhotos || []}
+                onChange={(photos) => setEditForm({ ...editForm, conditionPhotos: photos })}
               />
             </div>
 
