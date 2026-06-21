@@ -37,7 +37,14 @@ export const useBookStore = create<BookStore>((set, get) => ({
     const storedPriceHistory = loadPriceHistory();
 
     if (storedBooks.length > 0) {
-      set({ books: storedBooks, priceHistory: storedPriceHistory });
+      const migratedBooks = storedBooks.map(book => ({
+        ...book,
+        conditionPhotos: book.conditionPhotos || [],
+      }));
+      set({ books: migratedBooks, priceHistory: storedPriceHistory });
+      if (migratedBooks.some((b, i) => !storedBooks[i]?.conditionPhotos)) {
+        saveBooks(migratedBooks);
+      }
     } else {
       set({ books: mockBooks, priceHistory: storedPriceHistory });
       saveBooks(mockBooks);
@@ -71,7 +78,14 @@ export const useBookStore = create<BookStore>((set, get) => ({
   updateBook: (id: string, data: Partial<Book>) => {
     const books = get().books.map(book =>
       book.id === id
-        ? { ...book, ...data, updatedAt: new Date().toISOString() }
+        ? {
+            ...book,
+            ...data,
+            conditionPhotos: data.conditionPhotos !== undefined
+              ? data.conditionPhotos
+              : (book.conditionPhotos || []),
+            updatedAt: new Date().toISOString(),
+          }
         : book
     );
     set({ books });
@@ -112,7 +126,12 @@ export const useBookStore = create<BookStore>((set, get) => ({
   updateStatus: (id: string, status: Book['status']) => {
     const books = get().books.map(book =>
       book.id === id
-        ? { ...book, status, updatedAt: new Date().toISOString() }
+        ? {
+            ...book,
+            status,
+            conditionPhotos: book.conditionPhotos || [],
+            updatedAt: new Date().toISOString(),
+          }
         : book
     );
     set({ books });

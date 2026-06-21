@@ -69,7 +69,7 @@ export function InventoryPage() {
 
   const handleEdit = (book: Book) => {
     setSelectedBook(book);
-    setEditForm({ ...book });
+    setEditForm({ ...book, conditionPhotos: book.conditionPhotos || [] });
     setIsEditModalOpen(true);
   };
 
@@ -458,7 +458,7 @@ export function InventoryPage() {
                   品相实拍照片
                   {selectedBook.conditionPhotos?.length > 0 && (
                     <span className="ml-2 text-xs bg-olive-100 text-olive-700 px-2 py-0.5 rounded-full">
-                      {selectedBook.conditionPhotos.length} 张
+                      {selectedBook.conditionPhotos?.length} 张
                     </span>
                   )}
                 </p>
