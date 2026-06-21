@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { Scan, BookPlus, Check, Info, Camera } from 'lucide-react';
+import { Scan, BookPlus, Check, Info, Camera, Bell, Users, X } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { ConditionBadge } from '@/components/ConditionBadge';
 import { ConditionPhotoUploader } from '@/components/ConditionPhotoUploader';
+import { Modal } from '@/components/Modal';
 import { useBookStore } from '@/store/useBookStore';
+import { useBookRequestStore } from '@/store/useBookRequestStore';
 import { lookupIsbn, validateIsbn } from '@/utils/isbn';
 import { calculateSalePrice, conditionLabels, scarcityLabels } from '@/utils/pricing';
 import { formatCurrency } from '@/utils/format';
-import type { BookCondition, ScarcityLevel, BookFormData, IsbnLookupResult, ConditionPhoto } from '@/types';
+import type { BookCondition, ScarcityLevel, BookFormData, IsbnLookupResult, BookRequest } from '@/types';
 
 type InputMode = 'scan' | 'manual';
 
@@ -18,6 +20,8 @@ export function StockInPage() {
   const [lookupResult, setLookupResult] = useState<IsbnLookupResult | null>(null);
   const [lookupError, setLookupError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [matchedRequests, setMatchedRequests] = useState<BookRequest[]>([]);
+  const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
 
   const [formData, setFormData] = useState<BookFormData>({
     isbn: '',
@@ -36,6 +40,7 @@ export function StockInPage() {
   });
 
   const addBook = useBookStore((state) => state.addBook);
+  const { matchBookToRequests, createSmsNotification, markNotificationSent } = useBookRequestStore();
 
   const handleIsbnSearch = async () => {
     if (!validateIsbn(isbn)) {
@@ -83,11 +88,26 @@ export function StockInPage() {
     }
 
     const newBook = addBook(formData);
-    setSuccessMessage(`"${newBook.title}" 入库成功！建议售价：${formatCurrency(newBook.salePrice)}`);
+    const matched = matchBookToRequests(newBook);
+
+    if (matched.length > 0) {
+      setMatchedRequests(matched);
+      setIsMatchModalOpen(true);
+      setSuccessMessage(
+        `"${newBook.title}" 入库成功！发现 ${matched.length} 条匹配的缺书登记，建议售价：${formatCurrency(newBook.salePrice)}`
+      );
+
+      matched.forEach((req) => {
+        const notification = createSmsNotification(req, newBook);
+        markNotificationSent(notification.id);
+      });
+    } else {
+      setSuccessMessage(`"${newBook.title}" 入库成功！建议售价：${formatCurrency(newBook.salePrice)}`);
+    }
 
     setTimeout(() => {
       setSuccessMessage('');
-    }, 3000);
+    }, 5000);
 
     resetForm();
   };
@@ -341,7 +361,7 @@ export function StockInPage() {
                 </div>
                 <ConditionPhotoUploader
                   photos={formData.conditionPhotos}
-                  onChange={(photos) => handleInputChange('conditionPhotos', photos as any)}
+                  onChange={(photos) => setFormData((prev) => ({ ...prev, conditionPhotos: photos }))}
                 />
               </div>
 
@@ -490,6 +510,75 @@ export function StockInPage() {
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={isMatchModalOpen}
+        onClose={() => setIsMatchModalOpen(false)}
+        title="发现匹配的缺书登记"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-olive-50 border border-olive-200 rounded-xl flex items-start gap-3">
+            <Bell className="w-5 h-5 text-olive-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-olive-700">
+                已自动匹配 {matchedRequests.length} 条缺书登记并发送短信通知
+              </p>
+              <p className="text-sm text-olive-600 mt-1">
+                系统已向以下顾客发送到货提醒短信
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {matchedRequests.map((req) => (
+              <div
+                key={req.id}
+                className="p-4 bg-brown-50 rounded-xl border border-brown-100"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Users className="w-4 h-4 text-brown-500" />
+                      <span className="font-medium text-brown-800">{req.customerName}</span>
+                    </div>
+                    <p className="text-sm text-brown-600">
+                      电话：{req.customerPhone}
+                    </p>
+                    <p className="text-sm text-brown-500 mt-1">
+                      书籍：《{req.title}》{req.author ? ` - ${req.author}` : ''}
+                    </p>
+                    {req.maxPrice !== undefined && (
+                      <p className="text-sm text-amber-600 mt-1">
+                        最高接受价：{formatCurrency(req.maxPrice)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 px-2.5 py-1 bg-olive-100 text-olive-700 rounded-full text-xs font-medium">
+                    <Check className="w-3.5 h-3.5" />
+                    已发送
+                  </div>
+                </div>
+                {req.notes && (
+                  <div className="mt-3 pt-3 border-t border-brown-200">
+                    <p className="text-xs text-brown-500">顾客备注：{req.notes}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-2">
+            <button
+              onClick={() => setIsMatchModalOpen(false)}
+              className="w-full btn btn-primary"
+            >
+              <X className="w-4 h-4 mr-2" />
+              关闭
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

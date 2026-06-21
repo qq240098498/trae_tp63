@@ -1,10 +1,12 @@
-import type { Book, Sale, TradeIn, PriceHistory } from '@/types';
+import type { Book, Sale, TradeIn, PriceHistory, BookRequest, SmsNotification } from '@/types';
 
 const STORAGE_KEYS = {
   BOOKS: 'bookstore_books',
   SALES: 'bookstore_sales',
   TRADE_INS: 'bookstore_trade_ins',
   PRICE_HISTORY: 'bookstore_price_history',
+  BOOK_REQUESTS: 'bookstore_book_requests',
+  SMS_NOTIFICATIONS: 'bookstore_sms_notifications',
 };
 
 export function saveToStorage<T>(key: string, data: T): void {
@@ -55,4 +57,20 @@ export function savePriceHistory(history: PriceHistory[]): void {
 
 export function loadPriceHistory(): PriceHistory[] {
   return loadFromStorage<PriceHistory[]>(STORAGE_KEYS.PRICE_HISTORY, []);
+}
+
+export function saveBookRequests(requests: BookRequest[]): void {
+  saveToStorage(STORAGE_KEYS.BOOK_REQUESTS, requests);
+}
+
+export function loadBookRequests(): BookRequest[] {
+  return loadFromStorage<BookRequest[]>(STORAGE_KEYS.BOOK_REQUESTS, []);
+}
+
+export function saveSmsNotifications(notifications: SmsNotification[]): void {
+  saveToStorage(STORAGE_KEYS.SMS_NOTIFICATIONS, notifications);
+}
+
+export function loadSmsNotifications(): SmsNotification[] {
+  return loadFromStorage<SmsNotification[]>(STORAGE_KEYS.SMS_NOTIFICATIONS, []);
 }

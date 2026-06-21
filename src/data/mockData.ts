@@ -1,4 +1,4 @@
-import type { Book, Sale, TradeIn } from '@/types';
+import type { Book, Sale, TradeIn, BookRequest, SmsNotification } from '@/types';
 import { generateId } from '@/utils/format';
 
 const now = new Date();
@@ -288,5 +288,66 @@ export const mockTradeIns: TradeIn[] = [
     priceDifference: 27,
     direction: 'additional',
     notes: '顾客补了27元差价',
+  },
+];
+
+export const mockBookRequests: BookRequest[] = [
+  {
+    id: generateId(),
+    isbn: '9787536692930',
+    title: '三体',
+    author: '刘慈欣',
+    publisher: '重庆出版社',
+    customerName: '张三',
+    customerPhone: '13800138001',
+    maxPrice: 40,
+    notes: '想要第一部，品相好一些',
+    status: 'pending',
+    createdAt: daysAgo(3),
+    updatedAt: daysAgo(3),
+  },
+  {
+    id: generateId(),
+    isbn: '9787544270878',
+    title: '活着',
+    author: '余华',
+    publisher: '南海出版公司',
+    customerName: '李四',
+    customerPhone: '13800138002',
+    notes: '',
+    status: 'pending',
+    createdAt: daysAgo(5),
+    updatedAt: daysAgo(5),
+  },
+  {
+    id: generateId(),
+    isbn: '9787020002207',
+    title: '红楼梦',
+    author: '曹雪芹',
+    publisher: '人民文学出版社',
+    customerName: '王五',
+    customerPhone: '13800138003',
+    maxPrice: 50,
+    notes: '人民文学出版社版本',
+    status: 'notified',
+    matchedBookId: 'matched-mock-1',
+    createdAt: daysAgo(10),
+    updatedAt: daysAgo(1),
+  },
+];
+
+export const mockSmsNotifications: SmsNotification[] = [
+  {
+    id: generateId(),
+    bookRequestId: 'notified-mock-1',
+    customerName: '王五',
+    customerPhone: '13800138003',
+    bookTitle: '红楼梦',
+    bookIsbn: '9787020002207',
+    bookId: 'matched-mock-1',
+    message: '【旧书店通知】尊敬的王五，您登记的《红楼梦》已到货！售价：28元，请尽快到店选购。',
+    status: 'sent',
+    sentAt: daysAgo(1),
+    createdAt: daysAgo(1),
   },
 ];

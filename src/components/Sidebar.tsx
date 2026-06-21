@@ -8,6 +8,7 @@ import {
   Menu,
   X,
   BookMarked,
+  BookHeart,
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useUiStore } from '@/store/useUiStore';
@@ -19,6 +20,7 @@ const navItems = [
   { path: '/pricing', label: '定价上架', icon: Tag },
   { path: '/sales', label: '销售出库', icon: ShoppingCart },
   { path: '/trade-in', label: '以旧换新', icon: RefreshCw },
+  { path: '/wishlist', label: '缺书登记', icon: BookHeart },
 ];
 
 export function Sidebar() {

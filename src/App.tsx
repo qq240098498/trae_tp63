@@ -6,18 +6,22 @@ import { StockInPage } from '@/pages/StockInPage';
 import { PricingPage } from '@/pages/PricingPage';
 import { SalesPage } from '@/pages/SalesPage';
 import { TradeInPage } from '@/pages/TradeInPage';
+import { WishlistPage } from '@/pages/WishlistPage';
 import { useEffect } from 'react';
 import { useBookStore } from '@/store/useBookStore';
 import { useSaleStore } from '@/store/useSaleStore';
+import { useBookRequestStore } from '@/store/useBookRequestStore';
 
 function AppInitializer() {
   const initBooks = useBookStore((state) => state.init);
   const initSales = useSaleStore((state) => state.init);
+  const initBookRequests = useBookRequestStore((state) => state.init);
 
   useEffect(() => {
     initBooks();
     initSales();
-  }, [initBooks, initSales]);
+    initBookRequests();
+  }, [initBooks, initSales, initBookRequests]);
 
   return null;
 }
@@ -34,6 +38,7 @@ export default function App() {
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/sales" element={<SalesPage />} />
           <Route path="/trade-in" element={<TradeInPage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
         </Route>
       </Routes>
     </Router>

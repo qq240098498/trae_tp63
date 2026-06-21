@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Camera, Upload, X, Image as ImageIcon, BookOpen, BookMarked, FileText, AlertTriangle } from 'lucide-react';
+import { Camera, X, Image as ImageIcon, BookOpen, BookMarked, FileText, AlertTriangle } from 'lucide-react';
 import type { ConditionPhoto } from '@/types';
 import { generateId } from '@/utils/format';
 

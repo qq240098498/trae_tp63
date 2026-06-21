@@ -118,3 +118,37 @@ export interface IsbnLookupResult {
   coverImage: string;
   description: string;
 }
+
+export type BookRequestStatus = 'pending' | 'matched' | 'notified' | 'completed' | 'cancelled';
+
+export interface BookRequest {
+  id: string;
+  isbn: string;
+  title: string;
+  author: string;
+  publisher: string;
+  customerName: string;
+  customerPhone: string;
+  maxPrice?: number;
+  notes: string;
+  status: BookRequestStatus;
+  matchedBookId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'read';
+
+export interface SmsNotification {
+  id: string;
+  bookRequestId: string;
+  customerName: string;
+  customerPhone: string;
+  bookTitle: string;
+  bookIsbn: string;
+  bookId: string;
+  message: string;
+  status: NotificationStatus;
+  sentAt?: string;
+  createdAt: string;
+}
